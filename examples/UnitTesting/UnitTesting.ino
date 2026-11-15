@@ -303,6 +303,115 @@ test(MQ309A_CO)
 }
 
 
+/*********************** 2.0 API ************************************************/
+// Each test builds its own sensor, so no state carries from one to the next.
+// RL 10 kOhm and a 5 V supply: at 1.0 V out, Rs = 5*10/1 - 10 = 40 kOhm.
+
+// Collects what printDebug writes, so a test can look for text in it.
+class Capture : public Print
+{
+public:
+  char text[200] = "";
+  size_t length = 0;
+  size_t write(uint8_t c) override
+  {
+    if (length < sizeof(text) - 1)
+    {
+      text[length++] = c;
+      text[length] = '\0';
+    }
+    return 1;
+  }
+  bool has(const char *s) const { return strstr(text, s) != NULL; }
+};
+
+test(v2_name_is_kept_whole)
+{
+  MQGasSensor s(A15, 5.0, 10, "MQ-309A");
+  Capture out;
+  s.printDebug(out);
+  assertTrue(out.has("MQ-309A:")); // 1.2 kept 6 characters: "MQ-309"
+}
+
+test(v2_debug_names_the_power_law)
+{
+  MQGasSensor s(A15);
+  s.setCurve(990.22, -2.826, MQModel::PowerLaw);
+  Capture out;
+  s.printDebug(out);
+  assertTrue(out.has("a*ratio^b")); // 1.2 printed "ratio*a + b"
+}
+
+test(v2_power_law_curve)
+{
+  MQGasSensor s(A15);
+  s.setCurve(990.22, -2.826);
+  assertNear(s.ppmFromRatio(1.0), 990.22, 0.01);
+  assertNear(s.ppmFromRatio(0.5), 990.22 * pow(0.5, -2.826), 0.5);
+}
+
+test(v2_log_linear_curve)
+{
+  MQGasSensor s(A15);
+  s.setCurve(-0.38, 1.48, MQModel::LogLinear);
+  assertNear(s.ppmFromRatio(2.0), pow(10, (log10(2.0) - 1.48) / -0.38), 0.01);
+}
+
+test(v2_calibrate_stores_r0)
+{
+  MQGasSensor s(A15);
+  s.setLoadResistance(10);
+  s.updateFromVoltage(1.0);           // Rs = 40
+  float r0 = s.calibrate(4.0);        // R0 = Rs / 4
+  assertNear(r0, 10.0, 0.001);
+  assertNear(s.r0(), 10.0, 0.001);    // 1.2 returned R0 without keeping it
+}
+
+test(v2_correction_divides_the_ratio)
+{
+  MQGasSensor s(A15);
+  s.setLoadResistance(10);
+  s.setR0(10);
+  s.setCurve(990.22, -2.826);
+  s.updateFromVoltage(1.0);           // Rs/R0 = 4
+  s.setCorrection(2.0);
+  s.readPpm();
+  assertNear(s.ratio(), 2.0, 0.0001); // 1.2 added the factor: 6
+}
+
+test(v2_r0_over_rs)
+{
+  MQGasSensor s(A15);
+  s.setLoadResistance(10);
+  s.setR0(10);
+  s.setCurve(990.22, -2.826);
+  s.setRatio(MQRatio::R0OverRs);
+  s.updateFromVoltage(1.0);           // R0/Rs = 10/40
+  s.readPpm();
+  assertNear(s.ratio(), 0.25, 0.0001);
+}
+
+test(v2_supply_offset)
+{
+  MQGasSensor s(A15);
+  s.setLoadResistance(10);
+  s.setSupplyOffset(0.45);            // the MQ-303A
+  s.updateFromVoltage(1.0);           // Rs = (5 - 0.45)*10/1 - 10
+  assertNear(s.rs(), 35.5, 0.001);
+}
+
+test(v2_zero_volts_is_no_reading)
+{
+  MQGasSensor s(A15);
+  s.setR0(10);
+  s.setCurve(990.22, -2.826);
+  assertFalse(s.updateFromVoltage(0.0));
+  assertTrue(isnan(s.readPpm()));     // 1.2 divided by zero and returned 0
+  assertFalse(s.updateFromRaw(0));
+  assertTrue(s.updateFromRaw(512));
+  assertNear(s.voltage(), 512 * 5.0 / 1023, 0.001);
+}
+
 void setup()
 {
   Serial.begin(9600);
