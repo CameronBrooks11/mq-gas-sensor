@@ -82,7 +82,7 @@ setup() {
 }
 
 check() {
-  local build="${TMPDIR:-/tmp}/mqgassensors-build" pass=0 fail=0 skip=0
+  local build="${TMPDIR:-/tmp}/mq-gas-sensor-build" pass=0 fail=0 skip=0
   local sketch fqbn core lib want have missing log
   while IFS= read -r sketch; do
     fqbn=$(board_for "$sketch")

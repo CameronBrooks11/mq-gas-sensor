@@ -23,7 +23,7 @@ import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-USER_AGENT = "mqgassensors-datasheets/1.0"
+USER_AGENT = "mq-gas-sensor-datasheets/1.0"
 KINDS = ("wayback", "swh", "live", "github")
 MAX_BYTES = 50 * 1024 * 1024
 
