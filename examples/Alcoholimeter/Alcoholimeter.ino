@@ -24,7 +24,6 @@
 //Include the library
 #include <MQGasSensor.h>
 /************************Hardware Related Macros************************************/
-#define         Board                   ("Arduino UNO")
 #define         Pin                     (A3)  //Analog input 3 of your arduino
 /***********************Software Related Macros************************************/
 #define         Type                    ("MQ-3") //MQ3
@@ -35,15 +34,14 @@
 /*****************************Globals***********************************************/
 double          alcoholMgL          =   (0); // mg/L: the unit of the MQ-3 datasheet's figure
 /**************************Object_Sensor********************************************/
-MQGasSensor MQ3(Board, Voltage_Resolution, ADC_Bit_Resolution, Pin, Type);
+MQGasSensor MQ3(Pin, Voltage_Resolution, ADC_Bit_Resolution, Type);
 
 void setup() {
   //Init the serial port communication - to debug the library
   Serial.begin(9600); //Init serial port
 
   //Set math model to calculate the PPM concentration and the value of constants
-  MQ3.setRegressionMethod(1); //_PPM =  a*ratio^b
-  MQ3.setA(0.39304); MQ3.setB(-1.495); //Configure the equation to calculate alcohol concentration value
+  MQ3.setCurve(0.39304, -1.495); //Configure the equation to calculate alcohol concentration value
   /*
     Exponential regression:
   Gas     | a          | b
@@ -58,13 +56,13 @@ void setup() {
   */
 
   /* 
-    //If the RL value is different from 10K please assign your RL value with the following method:
-    MQ3.setRL(10);
+    //If the RL value is different from 10K please set it with setLoadResistance:
+    MQ3.setLoadResistance(10);
   */
   /*****************************  MQ Init ********************************************/ 
   //Remarks: Configure the pin of arduino as input.
   /************************************************************************************/ 
-  MQ3.init();
+  MQ3.begin();
   /*****************************  MQ CAlibration ********************************************/ 
   // Explanation: 
    // In this routine the sensor will measure the resistance of the sensor supposedly before being pre-heated
@@ -90,8 +88,7 @@ void setup() {
 
 void loop() {
   MQ3.update(); // Update data, the arduino will read the voltage from the analog pin
-  float correctionFactor = 0; // Optional environmental correction
-  alcoholMgL = MQ3.readSensor(false, correctionFactor); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
+  alcoholMgL = MQ3.readPpm(); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
   Serial.print("Alcohol now (mg/L): ");
   Serial.println(alcoholMgL);
   delay(500); //Sampling frequency

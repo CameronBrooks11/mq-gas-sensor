@@ -23,7 +23,6 @@
 #include <MQGasSensor.h>
 
 //Definitions
-#define placa "Arduino UNO"
 #define Voltage_Resolution 5
 #define pin A4 //Analog input 4 of your arduino
 #define type "MQ-4" //MQ4
@@ -32,7 +31,7 @@
 //#define calibration_button 13 //Pin to calibrate your sensor
 
 //Declare Sensor
-MQGasSensor MQ4(placa, Voltage_Resolution, ADC_Bit_Resolution, pin, type);
+MQGasSensor MQ4(pin, Voltage_Resolution, ADC_Bit_Resolution, type);
 
 void setup() {
   //Init the serial port communication - to debug the library
@@ -64,8 +63,8 @@ void setup() {
   /*****************************  MQ CAlibration ********************************************/ 
 
   /* 
-    //If the RL value is different from 10K please assign your RL value with the following method:
-    MQ4.setRL(10);
+    //If the RL value is different from 10K please set it with setLoadResistance:
+    MQ4.setLoadResistance(10);
   */
 
   /*****************************  MQ Init ********************************************/ 
@@ -73,7 +72,7 @@ void setup() {
   //Output: print on serial port the information about sensor and sensor readings
   //Remarks: Configure the pin of arduino as input.
   /************************************************************************************/ 
-  MQ4.init(); 
+  MQ4.begin(); 
 
   Serial.println("** Values from MQ-4**********");
   Serial.println("|      LPG (Linear EQ)        |         LPG (Exponential EQ)      |");  
@@ -81,18 +80,15 @@ void setup() {
 
 void loop() {
   MQ4.update(); // Update data, the arduino will read the voltage from the analog pin
-  float correctionFactor = 0; // Optional environmental correction
   
   //https://jayconsystems.com/blog/understanding-a-gas-sensor 
   //Set math model to calculate the PPM concentration and the value of constants
-  MQ4.setRegressionMethod(0); //_PPM =  pow(10, (log10(ratio)-b)/a)
-  MQ4.setA(-0.318); MQ4.setB(1.133); // A -> Slope, B -> Intersect with X - Axis
-  float LPG1 = MQ4.readSensor(false, correctionFactor); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
+  MQ4.setCurve(-0.318, 1.133, MQModel::LogLinear); // ppm = 10^((log10(ratio) - b) / a); a is the slope, b the intercept
+  float LPG1 = MQ4.readPpm(); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
   
   //Set math model to calculate the PPM concentration and the value of constants
-  MQ4.setRegressionMethod(1); //_PPM =  a*ratio^b
-  MQ4.setA(990.22); MQ4.setB(-2.826); // Configure the equation to to calculate CH4 concentration
-  float LPG2 = MQ4.readSensor(false, correctionFactor); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
+  MQ4.setCurve(990.22, -2.826); // Configure the equation to to calculate CH4 concentration
+  float LPG2 = MQ4.readPpm(); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
 
   //  exposure to 2000 ppm of LPG gas is immediately dangerous to life and health. In this section
   if(LPG1>=2000 || LPG2>=2000) Serial.println("Warning - Very high concentrations detected!");

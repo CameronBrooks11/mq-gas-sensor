@@ -58,9 +58,9 @@ class ExampleScanTests(unittest.TestCase):
             sketch = Path(d) / "MQ-4" / "MQ-4.ino"
             sketch.parent.mkdir()
             sketch.write_text(
-                "MQ4.setA(1012.7); MQ4.setB(-2.786); // CH4\n"
-                "  MQ303.setA( 6.2144 ) ;  MQ303.setB(-2.894);\n"
-                "MQ4.setA(-0.318); MQ4.setB(1.133);\n"
+                "MQ4.setCurve(1012.7, -2.786); // CH4\n"
+                "  MQ303.setCurve( 6.2144 ,-2.894 ) ;\n"
+                "MQ4.setCurve(-0.318, 1.133, MQModel::LogLinear);\n"
                 "MQ4.setR0(10);\n"
             )
             pairs = table.example_pairs(Path(d))

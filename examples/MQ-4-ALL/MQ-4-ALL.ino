@@ -24,7 +24,6 @@
 //Include the library
 #include <MQGasSensor.h>
 /************************Hardware Related Macros************************************/
-#define         Board                   ("Arduino UNO")
 #define         Pin                     (A4)  //Analog input 4 of your arduino
 /***********************Software Related Macros************************************/
 #define         Type                    ("MQ-4") //MQ4
@@ -33,23 +32,22 @@
 #define         RatioMQ4CleanAir        (4.43) // Rs/R0 in clean air, from the datasheet's AIR line (docs/coefficients.md)
 /*****************************Globals***********************************************/
 //Declare Sensor
-MQGasSensor MQ4(Board, Voltage_Resolution, ADC_Bit_Resolution, Pin, Type);
+MQGasSensor MQ4(Pin, Voltage_Resolution, ADC_Bit_Resolution, Type);
 
 void setup() {
   //Init the serial port communication - to debug the library
   Serial.begin(9600); //Init serial port
 
   //Set math model to calculate the PPM concentration and the value of constants
-  MQ4.setRegressionMethod(1); //_PPM =  a*ratio^b
 
   
   /*****************************  MQ Init ********************************************/ 
   //Remarks: Configure the pin of arduino as input.
   /************************************************************************************/ 
-  MQ4.init(); 
+  MQ4.begin(); 
   /* 
-    //If the RL value is different from 10K please assign your RL value with the following method:
-    MQ4.setRL(10);
+    //If the RL value is different from 10K please set it with setLoadResistance:
+    MQ4.setLoadResistance(10);
   */
   /*****************************  MQ CAlibration ********************************************/ 
   // Explanation: 
@@ -79,7 +77,6 @@ void setup() {
 
 void loop() {
   MQ4.update(); // Update data, the arduino will read the voltage from the analog pin
-  float correctionFactor = 0; // Optional environmental correction
   
   /*
     Exponential regression:
@@ -92,20 +89,20 @@ void loop() {
   smoke   | 4.7509e+07 | -8.836
   From docs/coefficients.md, the fits to the mq-4-hanwei-2007 datasheet.
   */
-  MQ4.setA(3736.2); MQ4.setB(-3.121); // Configure the equation to to calculate LPG concentration
-  float LPG = MQ4.readSensor(false, correctionFactor); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
+  MQ4.setCurve(3736.2, -3.121); // Configure the equation to to calculate LPG concentration
+  float LPG = MQ4.readPpm(); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
   
-  MQ4.setA(990.22); MQ4.setB(-2.826); // Configure the equation to to calculate CH4 concentration
-  float CH4 = MQ4.readSensor(false, correctionFactor); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
+  MQ4.setCurve(990.22, -2.826); // Configure the equation to to calculate CH4 concentration
+  float CH4 = MQ4.readPpm(); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
   
-  MQ4.setA(3.6362e+14); MQ4.setB(-19.54); // Configure the equation to to calculate CO concentration
-  float CO = MQ4.readSensor(false, correctionFactor); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
+  MQ4.setCurve(3.6362e+14, -19.54); // Configure the equation to to calculate CO concentration
+  float CO = MQ4.readPpm(); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
   
-  MQ4.setA(4.7360e+10); MQ4.setB(-13.79); // Configure the equation to to calculate alcohol concentration
-  float Alcohol = MQ4.readSensor(false, correctionFactor); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
+  MQ4.setCurve(4.7360e+10, -13.79); // Configure the equation to to calculate alcohol concentration
+  float Alcohol = MQ4.readPpm(); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
   
-  MQ4.setA(4.7509e+07); MQ4.setB(-8.836); // Configure the equation to to calculate smoke concentration
-  float Smoke = MQ4.readSensor(false, correctionFactor); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
+  MQ4.setCurve(4.7509e+07, -8.836); // Configure the equation to to calculate smoke concentration
+  float Smoke = MQ4.readPpm(); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
   
   Serial.print("|    "); Serial.print(LPG);
   Serial.print("    |    "); Serial.print(CH4);

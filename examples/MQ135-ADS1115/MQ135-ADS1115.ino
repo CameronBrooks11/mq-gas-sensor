@@ -20,13 +20,12 @@
 //Include the library
 #include <MQGasSensor.h>
 //Definitions
-#define placa "Arduino UNO"
 #define type "MQ-135" //MQ135
 #define RatioMQ135CleanAir 3.60 // Rs/R0 in clean air, from the datasheet's AIR line (docs/coefficients.md)
 float factorEscala = 0.1875F;
 //#define calibration_button 13 //Pin to calibrate your sensor
 //Declare Sensor
-MQGasSensor MQ135(placa, type);
+MQGasSensor MQ135(A0, 5.0, 10, type); // The ADS1115 reads the sensor, so the pin is never read; 5.0 is the sensor supply
 
  
 // Crear objeto de la clase
@@ -38,11 +37,6 @@ void setup(void)
   Serial.begin(9600); //Init serial port
   delay(200);
 
-  //Set math model to calculate the PPM concentration and the value of constants
-  MQ135.setRegressionMethod(1); //_PPM =  a*ratio^b
-
-  /************************************************************************************/ 
-  MQ135.init(); 
  
   // Iniciar el ADS1115
   ads.begin();
@@ -55,7 +49,7 @@ void setup(void)
     // Obtener datos del A0 del ADS1115
     short adc0 = ads.readADC_SingleEnded(0);
     float voltios = (adc0 * factorEscala)/1000.0;
-    MQ135.externalADCUpdate(voltios); // Update data, the arduino will read the voltage from the analog pin
+    MQ135.updateFromVoltage(voltios); // Use the voltage the ADS1115 measured
     calcR0 += MQ135.calibrate(RatioMQ135CleanAir);
     Serial.print(".");
   }
@@ -73,26 +67,25 @@ void loop() {
 // Obtener datos del A0 del ADS1115
   short adc0 = ads.readADC_SingleEnded(0);
   float voltios = (adc0 * factorEscala)/1000.0;
-  MQ135.externalADCUpdate(voltios); // Update data, the arduino will read the voltage from the analog pin
-  float correctionFactor = 0; // Optional environmental correction
+  MQ135.updateFromVoltage(voltios); // Use the voltage the ADS1115 measured
 
-  MQ135.setA(610.01); MQ135.setB(-3.960); // Configure the equation to calculate CO concentration value
-  float CO = MQ135.readSensor(false, correctionFactor); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
+  MQ135.setCurve(610.01, -3.960); // Configure the equation to calculate CO concentration value
+  float CO = MQ135.readPpm(); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
 
-  MQ135.setA(76.939); MQ135.setB(-3.173); //Configure the equation to calculate alcohol concentration value
-  float Alcohol = MQ135.readSensor(false, correctionFactor); // SSensor will read PPM concentration using the model, a and b values set previously or from the setup
+  MQ135.setCurve(76.939, -3.173); //Configure the equation to calculate alcohol concentration value
+  float Alcohol = MQ135.readPpm(); // SSensor will read PPM concentration using the model, a and b values set previously or from the setup
 
-  MQ135.setA(109.66); MQ135.setB(-2.856); // Configure the equation to calculate CO2 concentration value
-  float CO2 = MQ135.readSensor(false, correctionFactor); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
+  MQ135.setCurve(109.66, -2.856); // Configure the equation to calculate CO2 concentration value
+  float CO2 = MQ135.readPpm(); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
 
-  MQ135.setA(44.880); MQ135.setB(-3.443); // Configure the equation to calculate toluene concentration value
-  float Toluen = MQ135.readSensor(false, correctionFactor); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
+  MQ135.setCurve(44.880, -3.443); // Configure the equation to calculate toluene concentration value
+  float Toluen = MQ135.readPpm(); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
 
-  MQ135.setA(102.29 ); MQ135.setB(-2.484); // Configure the equation to calculate NH4 concentration value
-  float NH4 = MQ135.readSensor(false, correctionFactor); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
+  MQ135.setCurve(102.29, -2.484); // Configure the equation to calculate NH4 concentration value
+  float NH4 = MQ135.readPpm(); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
 
-  MQ135.setA(34.544); MQ135.setB(-3.402); // Configure the equation to calculate acetone concentration value
-  float Aceton = MQ135.readSensor(false, correctionFactor); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
+  MQ135.setCurve(34.544, -3.402); // Configure the equation to calculate acetone concentration value
+  float Aceton = MQ135.readPpm(); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
   Serial.print("|   "); Serial.print(CO); 
   Serial.print("   |   "); Serial.print(Alcohol);
   // Note: 200 Offset for CO2 source: https://github.com/miguel5612/MQSensorsLib/issues/29

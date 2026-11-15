@@ -25,7 +25,6 @@
 #include <MQGasSensor.h>
 
 //Definitions
-#define placa "Arduino UNO"
 #define Voltage_Resolution 5
 #define pin A0 //Analog input 0 of your arduino
 #define type "MQ-6" //MQ6
@@ -34,15 +33,14 @@
 //#define calibration_button 13 //Pin to calibrate your sensor
 
 //Declare Sensor
-MQGasSensor MQ6(placa, Voltage_Resolution, ADC_Bit_Resolution, pin, type);
+MQGasSensor MQ6(pin, Voltage_Resolution, ADC_Bit_Resolution, type);
 
 void setup() {
   //Init the serial port communication - to debug the library
   Serial.begin(9600); //Init serial port
 
   //Set math model to calculate the PPM concentration and the value of constants
-  MQ6.setRegressionMethod(1); //_PPM =  a*ratio^b
-  MQ6.setA(2195.3); MQ6.setB(-2.507); // Configure the equation to to calculate CH4 concentration
+  MQ6.setCurve(2195.3, -2.507); // Configure the equation to to calculate CH4 concentration
   /*
     Exponential regression:
   Gas     | a          | b
@@ -57,10 +55,10 @@ void setup() {
   /*****************************  MQ Init ********************************************/ 
   //Remarks: Configure the pin of arduino as input.
   /************************************************************************************/ 
-  MQ6.init();   
+  MQ6.begin();   
   /* 
-    //If the RL value is different from 10K please assign your RL value with the following method:
-    MQ6.setRL(10);
+    //If the RL value is different from 10K please set it with setLoadResistance:
+    MQ6.setLoadResistance(10);
   */
   /*****************************  MQ CAlibration ********************************************/ 
   // Explanation: 
@@ -83,13 +81,11 @@ void setup() {
   if(isinf(calcR0)) {Serial.println("Warning: Connection issue, R0 is infinite (Open circuit detected) please check your wiring and supply"); while(1);}
   if(calcR0 == 0){Serial.println("Warning: Connection issue found, R0 is zero (Analog pin shorts to ground) please check your wiring and supply"); while(1);}
   /*****************************  MQ CAlibration ********************************************/ 
-  MQ6.serialDebug(true);
 }
 
 void loop() {
   MQ6.update(); // Update data, the arduino will read the voltage from the analog pin
-  float correctionFactor = 0; // Optional environmental correction
-  MQ6.readSensor(false, correctionFactor); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
-  MQ6.serialDebug(); // Will print the table on the serial port
+  MQ6.readPpm(); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
+  MQ6.printDebug(); // Print one line: voltage, Rs, R0, ratio and ppm
   delay(500); //Sampling frequency
 }

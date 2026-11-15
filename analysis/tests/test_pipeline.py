@@ -58,7 +58,7 @@ class PipelineTests(unittest.TestCase):
         self.run_cli("trace", self.recipe, "--points", csv)
         code, out, _ = self.run_cli("fit", csv)
         self.assertEqual(code, 0)
-        self.assertIn("setA, setB", out)
+        self.assertIn("setCurve(a, b)", out)
 
     def test_overlay_is_a_picture_of_the_figure(self):
         png = self.dir / "out" / "overlay.png"
