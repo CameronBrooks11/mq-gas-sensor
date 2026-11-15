@@ -20,7 +20,7 @@ uv run python -m mqcurves trace recipes/<curve>.toml --points points.csv --overl
 | Form | Regression | Use |
 |---|---|---|
 | `ratio = A * ppm^B` | log ratio on log ppm | How the datasheet draws the curve |
-| `ppm = a * ratio^b` | log ppm on log ratio | What the library evaluates: `setA(a)`, `setB(b)` |
+| `ppm = a * ratio^b` | log ppm on log ratio | What the library evaluates: `setCurve(a, b)` |
 
 The two are exact inverses only when the points lie on a perfect line. `r^2` says how close they are to one.
 
@@ -174,7 +174,7 @@ just reproduce
 
 downloads the datasheets, derives each such curve again and expects the committed points back byte for byte. The `Datasheet mirrors` workflow runs it monthly and on pull requests that touch a recipe, the points or the tracer.
 
-The coefficients page also lists every `setA`/`setB` pair used in `examples/` beside the curve it comes from. `just check` fails when the page no longer matches the points or the examples, so a coefficient cannot change without the page changing with it.
+The coefficients page also lists every `setCurve` pair used in `examples/` beside the curve it comes from. `just check` fails when the page no longer matches the points or the examples, so a coefficient cannot change without the page changing with it.
 
 ## Limits
 
