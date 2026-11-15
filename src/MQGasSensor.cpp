@@ -1,30 +1,13 @@
 #include "MQGasSensor.h"
 #include <float.h>
 #include <math.h>
+#include <string.h>
 
 #define retries 2
 #define retry_interval 20
 
-MQGasSensor::MQGasSensor(String Placa, float Voltage_Resolution, int ADC_Bit_Resolution, int pin, String type)
-{
-  this->_pin = pin;
-  Placa.toCharArray(this->_placa, 20);
-  type.toCharArray(this->_type, 7);
-  // this->_type = type; //MQ-2, MQ-3 ... MQ-309A
-  // this->_placa = Placa;
-  this->_VOLT_RESOLUTION = Voltage_Resolution;
-  this->_VCC = Voltage_Resolution;
-  this->_ADC_Bit_Resolution = ADC_Bit_Resolution;
-}
-MQGasSensor::MQGasSensor(String Placa, String type)
-{
-  Placa.toCharArray(this->_placa, 20);
-  type.toCharArray(this->_type, 7);
-}
-void MQGasSensor::init()
-{
-  pinMode(_pin, INPUT);
-}
+// ---- shared core --------------------------------------------------------------
+
 static inline double safePow(double base, double exp)
 {
   if (exp == 0.0)
@@ -41,106 +24,222 @@ static inline bool willOverflow(double log_ppm)
   static const double minLog = log10((double)FLT_MIN);
   return (log_ppm > maxLog || log_ppm < minLog);
 }
+static float clampCoefficient(float v, float limit)
+{
+  if (isinf(v) || isnan(v))
+    return 0;
+  if (v > limit)
+    return limit;
+  if (v < -limit)
+    return -limit;
+  return v;
+}
+static const char *modelFormula(MQModel model)
+{
+  return model == MQModel::PowerLaw ? "a*ratio^b" : "10^((log10(ratio)-b)/a)";
+}
 
-void MQGasSensor::setA(float a)
+void MQGasSensor::setName(const char *name)
 {
-  if (isinf(a) || isnan(a))
-  {
-    this->_a = 0;
-  }
-  else if (a > MQ_MAX_A)
-  {
-    this->_a = MQ_MAX_A;
-  }
-  else if (a < -MQ_MAX_A)
-  {
-    this->_a = -MQ_MAX_A;
-  }
+  strncpy(_name, name ? name : "", sizeof(_name) - 1);
+  _name[sizeof(_name) - 1] = '\0';
+}
+
+float MQGasSensor::voltsFor(int raw) const
+{
+  return raw * _VOLT_RESOLUTION / ((pow(2, _ADC_Bit_Resolution)) - 1);
+}
+
+// Rs = (Vsupply * RL / Vout) - RL, the divider the sensor forms with RL.
+// At Vout = 0 this is infinite, as it always was; readPpm() reports that as NAN.
+float MQGasSensor::rsAt(float supplyVolts) const
+{
+  float rs = ((supplyVolts * _RL) / _sensor_volt) - _RL;
+  if (rs < 0)
+    rs = 0; // No negative values accepted.
+  return rs;
+}
+
+float MQGasSensor::ppmFor(double ratio) const
+{
+  if (ratio <= 0 || _a == 0)
+    return 0;
+  double logppm = (_model == MQModel::PowerLaw)
+                      ? log10((double)_a) + (double)_b * log10(ratio)
+                      : (log10(ratio) - (double)_b) / (double)_a;
+  double ppm;
+  if (willOverflow(logppm))
+    ppm = (logppm > 0) ? FLT_MAX : 0.0;
   else
+    ppm = safePow(10.0, logppm);
+  if (ppm < 0)
+    ppm = 0;
+  if (isinf(ppm) || isnan(ppm))
+    ppm = FLT_MAX;
+  return (float)ppm;
+}
+
+// ---- 2.0 API ------------------------------------------------------------------
+
+MQGasSensor::MQGasSensor(uint8_t pin, float adcRefVolts, uint8_t adcBits, const char *name)
+{
+  _pin = pin;
+  _VOLT_RESOLUTION = adcRefVolts;
+  _VCC = adcRefVolts;
+  _ADC_Bit_Resolution = adcBits;
+  setName(name);
+}
+
+void MQGasSensor::begin()
+{
+  pinMode(_pin, INPUT);
+}
+
+void MQGasSensor::setLoadResistance(float kOhm) { _RL = kOhm; }
+void MQGasSensor::setSupplyVoltage(float volts) { _VCC = volts; }
+void MQGasSensor::setAdcReference(float volts) { _VOLT_RESOLUTION = volts; }
+void MQGasSensor::setSupplyOffset(float volts) { _offset = volts; }
+void MQGasSensor::setRatio(MQRatio ratio) { _ratioMode = ratio; }
+void MQGasSensor::setCorrection(float factor) { _correction = factor; }
+
+void MQGasSensor::setCurve(float a, float b, MQModel model)
+{
+  _a = clampCoefficient(a, MQ_MAX_A);
+  _b = clampCoefficient(b, MQ_MAX_B);
+  _model = model;
+}
+
+float MQGasSensor::calibrate(float cleanAirRatio, float r0Offset)
+{
+  float R0 = rsAt(_VCC - _offset) / cleanAirRatio; // Rs in clean air over its datasheet ratio
+  R0 += r0Offset;
+  if (R0 < 0)
+    R0 = 0; // No negative values accepted.
+  _R0 = R0;
+  return R0;
+}
+
+void MQGasSensor::setR0(float R0) { _R0 = R0; }
+
+bool MQGasSensor::update()
+{
+  float avg = 0.0;
+  for (int i = 0; i < retries; i++)
   {
-    this->_a = a;
+    _adc = analogRead(_pin);
+    avg += _adc;
+    delay(retry_interval);
   }
+  _sensor_volt = (avg / retries) * _VOLT_RESOLUTION / ((pow(2, _ADC_Bit_Resolution)) - 1);
+  return _sensor_volt > 0;
 }
-void MQGasSensor::setB(float b)
+
+bool MQGasSensor::updateFromVoltage(float volts)
 {
-  if (isinf(b) || isnan(b))
+  _sensor_volt = volts;
+  return volts > 0;
+}
+
+bool MQGasSensor::updateFromRaw(int raw)
+{
+  _adc = raw;
+  _sensor_volt = voltsFor(raw);
+  return _sensor_volt > 0;
+}
+
+float MQGasSensor::readPpm()
+{
+  if (!(_sensor_volt > 0))
   {
-    this->_b = 0;
+    _ratio = NAN;
+    _PPM = NAN;
+    return NAN;
   }
-  else if (b > MQ_MAX_B)
-  {
-    this->_b = MQ_MAX_B;
-  }
-  else if (b < -MQ_MAX_B)
-  {
-    this->_b = -MQ_MAX_B;
-  }
-  else
-  {
-    this->_b = b;
-  }
+  _RS_Calc = rsAt(_VCC - _offset);
+  double ratio = (_ratioMode == MQRatio::RsOverR0) ? _RS_Calc / _R0 : _R0 / _RS_Calc;
+  ratio /= _correction;
+  _ratio = (float)ratio;
+  _PPM = ppmFor(ratio);
+  return _PPM;
 }
-void MQGasSensor::setR0(float R0)
+
+float MQGasSensor::ppmFromRatio(float ratio) const { return ppmFor(ratio); }
+
+float MQGasSensor::rs() const { return rsAt(_VCC - _offset); }
+float MQGasSensor::ratio() const { return _ratio; }
+float MQGasSensor::voltage() const { return _sensor_volt; }
+float MQGasSensor::r0() const { return _R0; }
+float MQGasSensor::a() const { return _a; }
+float MQGasSensor::b() const { return _b; }
+
+void MQGasSensor::printDebug(Print &out)
 {
-  this->_R0 = R0;
+  out.print(_name);
+  out.print(": V=");
+  out.print(_sensor_volt);
+  out.print(" V, Rs=");
+  out.print(rs());
+  out.print(" kOhm, R0=");
+  out.print(_R0);
+  out.print(" kOhm, ratio=");
+  out.print(_ratio);
+  out.print(", ppm=");
+  out.print(_PPM);
+  out.print(" (");
+  out.print(modelFormula(_model));
+  out.print(", a=");
+  out.print(_a);
+  out.print(", b=");
+  out.print(_b);
+  out.println(")");
 }
-void MQGasSensor::setRL(float RL)
+
+// ---- 1.2 API: the same behaviour as 1.2, through the shared core --------------
+
+MQGasSensor::MQGasSensor(String Placa, float Voltage_Resolution, int ADC_Bit_Resolution, int pin, String type)
 {
-  this->_RL = RL;
+  _pin = pin;
+  Placa.toCharArray(_placa, sizeof(_placa));
+  setName(type.c_str());
+  _VOLT_RESOLUTION = Voltage_Resolution;
+  _VCC = Voltage_Resolution;
+  _ADC_Bit_Resolution = ADC_Bit_Resolution;
 }
-void MQGasSensor::setADC(int value)
+MQGasSensor::MQGasSensor(String Placa, String type)
 {
-  this->_sensor_volt = (value)*_VOLT_RESOLUTION / ((pow(2, _ADC_Bit_Resolution)) - 1);
-  this->_adc = value;
+  Placa.toCharArray(_placa, sizeof(_placa));
+  setName(type.c_str());
 }
-void MQGasSensor::setVoltResolution(float voltage_resolution)
-{
-  _VOLT_RESOLUTION = voltage_resolution;
-}
-void MQGasSensor::setVCC(float vcc)
-{
-  _VCC = vcc;
-}
-void MQGasSensor::setPin(int pin)
-{
-  this->_pin = pin;
-}
+
+void MQGasSensor::init() { begin(); }
+void MQGasSensor::externalADCUpdate(float volt) { _sensor_volt = volt; }
+void MQGasSensor::setRL(float RL) { _RL = RL; }
+void MQGasSensor::setA(float a) { _a = clampCoefficient(a, MQ_MAX_A); }
+void MQGasSensor::setB(float b) { _b = clampCoefficient(b, MQ_MAX_B); }
 void MQGasSensor::setRegressionMethod(int regressionMethod)
 {
-  // this->_regressionMethod = regressionMethod;
-  this->_regressionMethod = regressionMethod;
+  _model = (regressionMethod == 1) ? MQModel::PowerLaw : MQModel::LogLinear;
 }
-float MQGasSensor::getR0()
+void MQGasSensor::setVoltResolution(float voltage_resolution) { _VOLT_RESOLUTION = voltage_resolution; }
+void MQGasSensor::setVCC(float vcc) { _VCC = vcc; }
+void MQGasSensor::setPin(int pin) { _pin = pin; }
+void MQGasSensor::setADC(int value)
 {
-  return _R0;
+  _sensor_volt = voltsFor(value);
+  _adc = value;
 }
-float MQGasSensor::getRL()
-{
-  return _RL;
-}
-float MQGasSensor::getVoltResolution()
-{
-  return _VOLT_RESOLUTION;
-}
-float MQGasSensor::getVCC()
-{
-  return _VCC;
-}
+
+float MQGasSensor::getR0() { return _R0; }
+float MQGasSensor::getRL() { return _RL; }
+float MQGasSensor::getVoltResolution() { return _VOLT_RESOLUTION; }
+float MQGasSensor::getVCC() { return _VCC; }
 String MQGasSensor::getRegressionMethod()
 {
-  if (_regressionMethod == 1)
-    return "Exponential";
-  else
-    return "Linear";
+  return _model == MQModel::PowerLaw ? "Exponential" : "Linear";
 }
-float MQGasSensor::getA()
-{
-  return _a;
-}
-float MQGasSensor::getB()
-{
-  return _b;
-}
+float MQGasSensor::getA() { return _a; }
+float MQGasSensor::getB() { return _b; }
+
 void MQGasSensor::serialDebug(bool onSetup)
 {
   if (onSetup)
@@ -156,7 +255,7 @@ void MQGasSensor::serialDebug(bool onSetup)
     Serial.println("Contributors: Andres A. Martinez - Juan A. Rodríguez - Mario A. Rodríguez O ");
 
     Serial.print("Sensor: ");
-    Serial.println(_type);
+    Serial.println(_name);
     Serial.print("ADC voltage: ");
     Serial.print(_VOLT_RESOLUTION);
     Serial.println(" VDC");
@@ -174,11 +273,8 @@ void MQGasSensor::serialDebug(bool onSetup)
     Serial.println(" KΩ");
 
     Serial.print("Model: ");
-    if (_regressionMethod == 1)
-      Serial.println("Exponential");
-    else
-      Serial.println("Linear");
-    Serial.print(_type);
+    Serial.println(_model == MQModel::PowerLaw ? "Exponential" : "Linear");
+    Serial.print(_name);
     Serial.print(" -> a: ");
     Serial.print(_a);
     Serial.print(" | b: ");
@@ -192,7 +288,7 @@ void MQGasSensor::serialDebug(bool onSetup)
     if (!_firstFlag)
     {
       Serial.print("| ********************************************************************");
-      Serial.print(_type);
+      Serial.print(_name);
       Serial.println("*********************************************************************|");
       Serial.println("|ADC_In | Equation_V_ADC | Voltage_ADC |        Equation_RS        | Resistance_RS  |    EQ_Ratio  | Ratio (RS/R0) | Equation_PPM |     PPM    |");
       _firstFlag = true; // Headers are printed
@@ -214,200 +310,80 @@ void MQGasSensor::serialDebug(bool onSetup)
       Serial.print("     | Ratio = RS/R0|    ");
       Serial.print(_ratio);
       Serial.print("       |   ");
-      if (_regressionMethod == 1)
-        Serial.print("ratio*a + b");
-      else
-        Serial.print("pow(10, (log10(ratio)-b)/a)");
+      Serial.print(modelFormula(_model)); // 1.2 printed "ratio*a + b" for the power law
       Serial.print("  |   ");
       Serial.print(_PPM);
       Serial.println("  |");
     }
   }
 }
-void MQGasSensor::update()
-{
-  _sensor_volt = this->getVoltage();
-}
-void MQGasSensor::externalADCUpdate(float volt)
-{
-  _sensor_volt = volt;
-}
+
 float MQGasSensor::validateEcuation(float ratioInput)
 {
-  double ppm;
-  if (_regressionMethod == 1)
-  {
-    if (ratioInput <= 0 || _a == 0)
-      return 0;
-    double logppm = log10((double)_a) + (double)_b * log10((double)ratioInput);
-    if (willOverflow(logppm))
-      ppm = (logppm > 0) ? FLT_MAX : 0.0;
-    else
-      ppm = safePow(10.0, logppm);
-  }
-  else
-  {
-    if (ratioInput <= 0 || _a == 0)
-      return 0;
-    double logppm = (log10((double)ratioInput) - (double)_b) / (double)_a;
-    if (willOverflow(logppm))
-      ppm = (logppm > 0) ? FLT_MAX : 0.0;
-    else
-      ppm = safePow(10.0, logppm);
-  }
-  if (isinf(ppm) || isnan(ppm))
-    ppm = FLT_MAX;
-  _PPM = (float)ppm;
+  if (ratioInput <= 0 || _a == 0)
+    return 0;
+  _PPM = ppmFor(ratioInput);
   return _PPM;
 }
+
 float MQGasSensor::readSensor(bool isMQ303A, float correctionFactor, bool injected)
 {
-  // More explained in: https://jayconsystems.com/blog/understanding-a-gas-sensor
-
-  // Upstream computes this offset from _VOLT_RESOLUTION and then never uses it;
-  // it is applied to the supply voltage here so MQ303A keeps its 0.45V offset.
-  float vcc = _VCC; // preserve sensor supply voltage
+  // 1.2: the MQ-303A flag lowers the supply by 0.45 V, and the correction
+  // factor is added to the ratio. readPpm() replaces both.
+  float vcc = _VCC - _offset;
   if (isMQ303A)
-  {
-    vcc = vcc - 0.45; // Calculations for RS using mq303a sensor look wrong #42
-  }
-  _RS_Calc = ((vcc * _RL) / _sensor_volt) - _RL; // Get value of RS in a gas
-  if (_RS_Calc < 0)
-    _RS_Calc = 0; // No negative values accepted.
+    vcc = vcc - 0.45;
+  _RS_Calc = rsAt(vcc);
   if (!injected)
-    _ratio = _RS_Calc / this->_R0; // Get ratio RS_gas/RS_air
+    _ratio = _RS_Calc / _R0;
   _ratio += correctionFactor;
   if (_ratio <= 0)
-    _ratio = 0; // No negative values accepted or upper datasheet recommendation.
-  double ppm;
-  if (_regressionMethod == 1)
-  {
-    if (_ratio <= 0 || _a == 0)
-      return 0;
-    double logppm = log10((double)_a) + (double)_b * log10((double)_ratio);
-    if (willOverflow(logppm))
-      ppm = (logppm > 0) ? FLT_MAX : 0.0;
-    else
-      ppm = safePow(10.0, logppm);
-  }
-  else
-  {
-    if (_ratio <= 0 || _a == 0)
-      return 0;
-    double logppm = (log10((double)_ratio) - (double)_b) / (double)_a;
-    if (willOverflow(logppm))
-      ppm = (logppm > 0) ? FLT_MAX : 0.0;
-    else
-      ppm = safePow(10.0, logppm);
-  }
-  if (ppm < 0)
-    ppm = 0; // No negative values accepted or upper datasheet recommendation.
-  if (isinf(ppm) || isnan(ppm))
-    ppm = FLT_MAX;
-  _PPM = (float)ppm;
-  // if(_PPM > 10000) _PPM = 99999999; //No negative values accepted or upper datasheet recommendation.
+    _ratio = 0;
+  if (_ratio <= 0 || _a == 0)
+    return 0;
+  _PPM = ppmFor(_ratio);
   return _PPM;
 }
+
 float MQGasSensor::readSensorR0Rs(float correctionFactor)
 {
-  // More explained in: https://jayconsystems.com/blog/understanding-a-gas-sensor
-  _RS_Calc = ((_VCC * _RL) / _sensor_volt) - _RL; // Get value of RS in a gas
-  if (_RS_Calc < 0)
-    _RS_Calc = 0;                // No negative values accepted.
-  _ratio = this->_R0 / _RS_Calc; // Get ratio RS_air/RS_gas <- INVERTED for MQ-131 issue 28 https://github.com/miguel5612/MQSensorsLib/issues/28
+  _RS_Calc = rsAt(_VCC);
+  _ratio = _R0 / _RS_Calc; // R0/Rs, for the MQ-131 (upstream issue 28)
   _ratio += correctionFactor;
   if (_ratio <= 0)
-    _ratio = 0; // No negative values accepted or upper datasheet recommendation.
-  double ppm;
-  if (_regressionMethod == 1)
-  {
-    if (_ratio <= 0 || _a == 0)
-      return 0;
-    double logppm = log10((double)_a) + (double)_b * log10((double)_ratio);
-    if (willOverflow(logppm))
-      ppm = (logppm > 0) ? FLT_MAX : 0.0;
-    else
-      ppm = safePow(10.0, logppm);
-  }
-  else
-  {
-    if (_ratio <= 0 || _a == 0)
-      return 0;
-    double logppm = (log10((double)_ratio) - (double)_b) / (double)_a;
-    if (willOverflow(logppm))
-      ppm = (logppm > 0) ? FLT_MAX : 0.0;
-    else
-      ppm = safePow(10.0, logppm);
-  }
-  if (ppm < 0)
-    ppm = 0; // No negative values accepted or upper datasheet recommendation.
-  if (isinf(ppm) || isnan(ppm))
-    ppm = FLT_MAX;
-  _PPM = (float)ppm;
-  // if(_PPM > 10000) _PPM = 99999999; //No negative values accepted or upper datasheet recommendation.
+    _ratio = 0;
+  if (_ratio <= 0 || _a == 0)
+    return 0;
+  _PPM = ppmFor(_ratio);
   return _PPM;
 }
-float MQGasSensor::calibrate(float ratioInCleanAir, float correctionFactor)
-{
-  // More explained in: https://jayconsystems.com/blog/understanding-a-gas-sensor
-  /*
-  V = I x R
-  VRL = [VC / (RS + RL)] x RL
-  VRL = (VC x RL) / (RS + RL)
-  Así que ahora resolvemos para RS:
-  VRL x (RS + RL) = VC x RL
-  (VRL x RS) + (VRL x RL) = VC x RL
-  (VRL x RS) = (VC x RL) - (VRL x RL)
-  RS = [(VC x RL) - (VRL x RL)] / VRL
-  RS = [(VC x RL) / VRL] - RL
-  */
-  float RS_air;                                             // Define variable for sensor resistance
-  float R0;                                                 // Define variable for R0
-  RS_air = ((_VCC * _RL) / _sensor_volt) - _RL; // Calculate RS in fresh air
-  if (RS_air < 0)
-    RS_air = 0;                  // No negative values accepted.
-  R0 = RS_air / ratioInCleanAir; // Calculate R0
-  R0 += correctionFactor;
-  if (R0 < 0)
-    R0 = 0; // No negative values accepted.
-  return R0;
-}
+
 float MQGasSensor::getVoltage(bool read, bool injected, int value)
 {
-  float voltage;
   if (read)
   {
-    float avg = 0.0;
-    for (int i = 0; i < retries; i++)
-    {
-      _adc = analogRead(this->_pin);
-      avg += _adc;
-      delay(retry_interval);
-    }
-    voltage = (avg / retries) * _VOLT_RESOLUTION / ((pow(2, _ADC_Bit_Resolution)) - 1);
+    // 1.2 read the pin here without keeping the voltage; only update() kept it.
+    float kept = _sensor_volt;
+    update();
+    float volts = _sensor_volt;
+    _sensor_volt = kept;
+    return volts;
   }
-  else if (!injected)
-  {
-    voltage = _sensor_volt;
-  }
-  else
-  {
-    voltage = (value)*_VOLT_RESOLUTION / ((pow(2, _ADC_Bit_Resolution)) - 1);
-    _sensor_volt = voltage; // to work on testing
-  }
-  return voltage;
+  if (!injected)
+    return _sensor_volt;
+  _sensor_volt = voltsFor(value); // to work on testing
+  return _sensor_volt;
 }
+
 float MQGasSensor::setRsR0RatioGetPPM(float value)
 {
   _ratio = value;
   return readSensor(false, 0, true);
 }
+
 float MQGasSensor::getRS()
 {
-  // More explained in: https://jayconsystems.com/blog/understanding-a-gas-sensor
-  _RS_Calc = ((_VCC * _RL) / _sensor_volt) - _RL; // Get value of RS in a gas
-  if (_RS_Calc < 0)
-    _RS_Calc = 0; // No negative values accepted.
+  _RS_Calc = rsAt(_VCC);
   return _RS_Calc;
 }
 
