@@ -9,7 +9,7 @@ cd "$(dirname "$0")/.."
 
 SKETCH=examples/UnitTesting
 TIMEOUT=${TEST_TIMEOUT:-60}
-build="${TMPDIR:-/tmp}/mqgassensors-build/$SKETCH"
+build="${TMPDIR:-/tmp}/mq-gas-sensor-build/$SKETCH"
 out="$build/simavr.out"
 
 for tool in arduino-cli simavr; do

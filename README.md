@@ -10,7 +10,7 @@
 [![Release][release-shield]][release-url]
 [![MIT License][license-shield]][license-url]
 
-# MQGasSensors
+# MQGasSensor
 
 A robust Arduino library for interfacing with MQ-series gas sensors, enabling accurate gas concentration measurements with ease. Supports calibration, resistance calculations, and real-time gas concentration derivation for various gases.
 
@@ -27,7 +27,7 @@ A robust Arduino library for interfacing with MQ-series gas sensors, enabling ac
 
 ## Table of Contents
 
-- [MQGasSensors](#mqgassensors)
+- [MQGasSensor](#mqgassensor)
   - [Features](#features)
   - [Table of Contents](#table-of-contents)
   - [Getting Started](#getting-started)
@@ -79,7 +79,7 @@ float ppmCH4 = MQ4.readSensor();
 Once you've completed your [hardware setup](#hardware-setup), start by cloning this repository to your computer:
 
 ```
-git clone https://github.com/CameronBrooks11/MQGasSensors
+git clone https://github.com/CameronBrooks11/mq-gas-sensor
 ```
 
 under your Arduino libraries folder or download the '.zip'.
@@ -189,7 +189,7 @@ These links are for reading. The exact files the coefficients were derived from,
 
 ## Contributing
 
-Please read [CONTRIBUTING.md](https://github.com/CameronBrooks11/MQGasSensors/blob/main/CONTRIBUTING.md) for details on the code of conduct, and the process for submitting pull requests.
+Please read [CONTRIBUTING.md](https://github.com/CameronBrooks11/mq-gas-sensor/blob/main/CONTRIBUTING.md) for details on the code of conduct, and the process for submitting pull requests.
 
 ## License
 
@@ -223,9 +223,9 @@ See also the list of [contributors](https://github.com/miguel5612/MQSensorsLib/g
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
 
-[check-shield]: https://img.shields.io/github/actions/workflow/status/CameronBrooks11/MQGasSensors/check.yml?branch=main&label=build%20%26%20tests
-[check-url]: https://github.com/CameronBrooks11/MQGasSensors/actions/workflows/check.yml
-[release-shield]: https://img.shields.io/github/v/release/CameronBrooks11/MQGasSensors
-[release-url]: https://github.com/CameronBrooks11/MQGasSensors/releases/latest
-[license-shield]: https://img.shields.io/github/license/CameronBrooks11/MQGasSensors
-[license-url]: https://github.com/CameronBrooks11/MQGasSensors/blob/main/LICENSE
+[check-shield]: https://img.shields.io/github/actions/workflow/status/CameronBrooks11/mq-gas-sensor/check.yml?branch=main&label=build%20%26%20tests
+[check-url]: https://github.com/CameronBrooks11/mq-gas-sensor/actions/workflows/check.yml
+[release-shield]: https://img.shields.io/github/v/release/CameronBrooks11/mq-gas-sensor
+[release-url]: https://github.com/CameronBrooks11/mq-gas-sensor/releases/latest
+[license-shield]: https://img.shields.io/github/license/CameronBrooks11/mq-gas-sensor
+[license-url]: https://github.com/CameronBrooks11/mq-gas-sensor/blob/main/LICENSE
