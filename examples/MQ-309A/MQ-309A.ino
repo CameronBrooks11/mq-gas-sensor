@@ -25,7 +25,6 @@
 #include <MQGasSensor.h>
 
 //Definitions
-#define placa "Arduino UNO"
 #define Voltage_Resolution 5
 #define pin A0 //Analog input 0 of your arduino
 #define type "MQ-309" //MQ309
@@ -34,7 +33,7 @@
 #define PWMPin 5 // Pin connected to mosfet
 
 //Declare Sensor
-MQGasSensor MQ309(placa, Voltage_Resolution, ADC_Bit_Resolution, pin, type);
+MQGasSensor MQ309(pin, Voltage_Resolution, ADC_Bit_Resolution, type);
 unsigned long oldTime = 0;
 
 void setup() {
@@ -43,8 +42,7 @@ void setup() {
   pinMode(PWMPin, OUTPUT);
 
   //Set math model to calculate the PPM concentration and the value of constants
-  MQ309.setRegressionMethod(1); //_PPM =  a*ratio^b
-  MQ309.setA(1.6313e+06); MQ309.setB(-4.076); // Configure the equation to calculate CO concentration value
+  MQ309.setCurve(1.6313e+06, -4.076); // Configure the equation to calculate CO concentration value
 
   /*
     Exponential regression:
@@ -59,10 +57,10 @@ void setup() {
   /*****************************  MQ Init ********************************************/ 
   //Remarks: Configure the pin of arduino as input.
   /************************************************************************************/ 
-  MQ309.init(); 
+  MQ309.begin(); 
   /* 
-    //If the RL value is different from 10K please assign your RL value with the following method:
-    MQ309.setRL(10);
+    //If the RL value is different from 10K please set it with setLoadResistance:
+    MQ309.setLoadResistance(10);
   */
   /*****************************  MQ CAlibration ********************************************/ 
   // Explanation: 
@@ -85,7 +83,6 @@ void setup() {
   if(isinf(calcR0)) {Serial.println("Warning: Connection issue, R0 is infinite (Open circuit detected) please check your wiring and supply"); while(1);}
   if(calcR0 == 0){Serial.println("Warning: Connection issue found, R0 is zero (Analog pin shorts to ground) please check your wiring and supply"); while(1);}
   /*****************************  MQ CAlibration ********************************************/ 
-  MQ309.serialDebug(true);
 }
 
 void loop() {
@@ -96,9 +93,8 @@ void loop() {
     // VH 0.9 Volts
     analogWrite(5, 2); // 255 is 100%, 2.295 is aprox 0.9% of Duty cycle for 60s
     MQ309.update(); // Update data, the arduino will read the voltage from the analog pin
-    float correctionFactor = 0; // Optional environmental correction
-    MQ309.readSensor(false, correctionFactor); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
-    MQ309.serialDebug(); // Will print the table on the serial port
+    MQ309.readPpm(); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
+    MQ309.printDebug(); // Print one line: voltage, Rs, R0, ratio and ppm
     delay(500); //Sampling frequency
   }
 
@@ -109,9 +105,8 @@ void loop() {
     // VL 0.2 Volts
     analogWrite(5, 1); // 255 is 100%, 0.51 is aprox 0.2% of Duty cycle for 120s
     MQ309.update(); // Update data, the arduino will read the voltage from the analog pin
-    float correctionFactor2 = 0; // Optional environmental correction
-    MQ309.readSensor(false, correctionFactor2); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
-    MQ309.serialDebug(); // Will print the table on the serial port
+    MQ309.readPpm(); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
+    MQ309.printDebug(); // Print one line: voltage, Rs, R0, ratio and ppm
     delay(500); //Sampling frequency
   } 
   // Total: 30 + 120s =  2.5 minutes.

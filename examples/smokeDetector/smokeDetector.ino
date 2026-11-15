@@ -21,7 +21,6 @@
 #include <MQGasSensor.h>
 
 //Definitions
-#define placa "Arduino UNO"
 #define Voltage_Resolution 5
 #define pin A4 //Analog input 4 of your arduino
 #define type "MQ-4" //MQ4
@@ -30,14 +29,13 @@
 //#define calibration_button 13 //Pin to calibrate your sensor
 
 //Declare Sensor
-MQGasSensor MQ4(placa, Voltage_Resolution, ADC_Bit_Resolution, pin, type);
+MQGasSensor MQ4(pin, Voltage_Resolution, ADC_Bit_Resolution, type);
 
 void setup() {
   //Init serial port
   Serial.begin(115200);
   //Set math model to calculate the PPM concentration and the value of constants
-  MQ4.setRegressionMethod(1); //_PPM =  a*ratio^b
-  MQ4.setA(4.7509e+07); MQ4.setB(-8.836); // Configure the equation to to calculate smoke concentration
+  MQ4.setCurve(4.7509e+07, -8.836); // Configure the equation to to calculate smoke concentration
   /*
     Exponential regression:
   Gas     | a          | b
@@ -52,10 +50,10 @@ void setup() {
   /*****************************  MQ Init ********************************************/ 
   //Remarks: Configure the pin of arduino as input.
   /************************************************************************************/ 
-  MQ4.init(); 
+  MQ4.begin(); 
    /* 
-    //If the RL value is different from 10K please assign your RL value with the following method:
-    MQ4.setRL(10);
+    //If the RL value is different from 10K please set it with setLoadResistance:
+    MQ4.setLoadResistance(10);
   */
   /*****************************  MQ CAlibration ********************************************/ 
   // Explanation: 
@@ -78,7 +76,6 @@ void setup() {
   if(isinf(calcR0)) {Serial.println("Warning: Connection issue, R0 is infinite (Open circuit detected) please check your wiring and supply"); while(1);}
   if(calcR0 == 0){Serial.println("Warning: Connection issue found, R0 is zero (Analog pin shorts to ground) please check your wiring and supply"); while(1);}
   /*****************************  MQ CAlibration ********************************************/ 
-  MQ4.serialDebug(true);
 }
 
   void loop() {
@@ -90,9 +87,8 @@ void setup() {
   //Read the sensor and print in serial port
   //Lecture will be saved in lecture variable
   MQ4.update();
-  float correctionFactor = 0; // Optional environmental correction
-  float smokePPM = MQ4.readSensor(false, correctionFactor); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
+  float smokePPM = MQ4.readPpm(); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
   if(smokePPM > 1000) {Serial.println("Warning: High concentrations of smoke detected");}
-  MQ4.serialDebug(); // Will print the table on the serial port
+  MQ4.printDebug(); // Print one line: voltage, Rs, R0, ratio and ppm
   delay(400);  
 }

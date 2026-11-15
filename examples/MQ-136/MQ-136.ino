@@ -21,7 +21,6 @@
 #include <MQGasSensor.h>
 
 //Definitions
-#define placa "Arduino UNO"
 #define Voltage_Resolution 5
 #define pin A0 //Analog input 0 of your arduino
 #define type "MQ-136" //MQ136
@@ -30,15 +29,14 @@
 //#define calibration_button 13 //Pin to calibrate your sensor
 
 //Declare Sensor
-MQGasSensor MQ136(placa, Voltage_Resolution, ADC_Bit_Resolution, pin, type);
+MQGasSensor MQ136(pin, Voltage_Resolution, ADC_Bit_Resolution, type);
 
 void setup() {
   //Init the serial port communication - to debug the library
   Serial.begin(9600); //Init serial port
 
   //Set math model to calculate the PPM concentration and the value of constants
-  MQ136.setRegressionMethod(1); //_PPM =  a*ratio^b
-  MQ136.setA(36.716); MQ136.setB(-3.481); // Configure the equation to to calculate H2S Concentration
+  MQ136.setCurve(36.716, -3.481); // Configure the equation to to calculate H2S Concentration
 
   /*
     Exponential regression:
@@ -52,10 +50,10 @@ void setup() {
   /*****************************  MQ Init ********************************************/ 
   //Remarks: Configure the pin of arduino as input.
   /************************************************************************************/ 
-  MQ136.init(); 
+  MQ136.begin(); 
   /* 
-    //If the RL value is different from 10K please assign your RL value with the following method:
-    MQ136.setRL(10);
+    //If the RL value is different from 10K please set it with setLoadResistance:
+    MQ136.setLoadResistance(10);
   */
   /*****************************  MQ CAlibration ********************************************/ 
   // Explanation: 
@@ -78,13 +76,11 @@ void setup() {
   if(isinf(calcR0)) {Serial.println("Warning: Connection issue, R0 is infinite (Open circuit detected) please check your wiring and supply"); while(1);}
   if(calcR0 == 0){Serial.println("Warning: Connection issue found, R0 is zero (Analog pin shorts to ground) please check your wiring and supply"); while(1);}
   /*****************************  MQ CAlibration ********************************************/ 
-  MQ136.serialDebug(true);
 }
 
 void loop() {
   MQ136.update(); // Update data, the arduino will read the voltage from the analog pin
-  float correctionFactor = 0; // Optional environmental correction
-  MQ136.readSensor(false, correctionFactor); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
-  MQ136.serialDebug(); // Will print the table on the serial port
+  MQ136.readPpm(); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
+  MQ136.printDebug(); // Print one line: voltage, Rs, R0, ratio and ppm
   delay(500); //Sampling frequency
 }

@@ -16,7 +16,6 @@
 //Include the library
 #include <MQGasSensor.h>
 /************************Hardware Related Macros************************************/
-#define         Board                   ("Arduino UNO")
 #define         Pin                     (A2)  //Analog input 2 of your arduino
 /***********************Software Related Macros************************************/
 #define         Type                    ("MQ-2") //MQ2
@@ -41,19 +40,18 @@ double          alcoholPPM          =   (0);
 unsigned long contador = 0;
 /**************************Object_Sensor********************************************/
 
-MQGasSensor MQ2(Board, Voltage_Resolution, ADC_Bit_Resolution, Pin, Type);
+MQGasSensor MQ2(Pin, Voltage_Resolution, ADC_Bit_Resolution, Type);
 
 void setup() {
   //Init serial port
   Serial.begin(115200);
-  MQ2.setRegressionMethod(1); //_PPM =  a*ratio^b
-  MQ2.setA(564.77); MQ2.setB(-2.151); // Configure the equation to to calculate LPG concentration
+  MQ2.setCurve(564.77, -2.151); // Configure the equation to to calculate LPG concentration
   /* 
-    //If the RL value is different from 10K please assign your RL value with the following method:
-    MQ3.setRL(10);
+    //If the RL value is different from 10K please set it with setLoadResistance:
+    MQ3.setLoadResistance(10);
   */
   //init the sensor
-  MQ2.init(); 
+  MQ2.begin(); 
   //Print in serial monitor
   Serial.println("MQ2 - Calibracion");
   Serial.println("Note - Make sure you are in a clean room and the sensor has pre-heated almost 4 hours");

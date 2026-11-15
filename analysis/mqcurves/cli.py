@@ -24,7 +24,7 @@ def report(label, f):
         print(f"  a flat line, such as clean air: Rs/R0 = {f.A:.5g}, no power law to fit")
         return
     print(f"  ratio = A * ppm^B     A = {f.A:.5g}   B = {f.B:.5g}")
-    print(f"  ppm = a * ratio^b     a = {f.a:.5g}   b = {f.b:.5g}    (setA, setB)")
+    print(f"  ppm = a * ratio^b     a = {f.a:.5g}   b = {f.b:.5g}    (setCurve(a, b))")
     print(f"  r^2 = {f.r_squared:.5f}   largest error against the points: {f.max_ppm_error * 100:.1f} % in ppm")
 
 

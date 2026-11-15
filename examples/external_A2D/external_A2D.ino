@@ -22,11 +22,11 @@
 
   Important:
   1. Although it doesn't matter what pin you put in when initializing your MQ sensor function it is important that you don't 
-  for any reason invoke the MQ.init() method because that method configures the selected pin as input and you may need it for 
+  for any reason invoke the MQ.begin() method because that method configures the selected pin as input and you may need it for 
   other use in the program.
   2.  You must ensure that your analog/digital converter will perform the conversion taking into account the output voltage 
   levels of the MQ sensor module.
-  3. You must ensure that when invoking the setADC(value) method the value you are passing is within the expected parameters, 
+  3. You must ensure that when invoking the updateFromRaw(value) method the value you are passing is within the expected parameters, 
   for example if it is a 10-bit ADC converter, we expect a value between 0 and 2^10 = 1024 
 
 */
@@ -35,7 +35,6 @@
 #include <MQGasSensor.h>
 
 //Definitions
-#define placa "Arduino UNO"
 #define Voltage_Resolution 5
 #define pin A0 //Analog input 0 -> This value can have any number, we recommend use A0
 #define type "MQ-3 With A2D External connected" //MQ3
@@ -44,15 +43,14 @@
 //#define calibration_button 13 //Pin to calibrate your sensor
 
 //Declare Sensor
-MQGasSensor MQ3(placa, Voltage_Resolution, ADC_Bit_Resolution, pin, type);
+MQGasSensor MQ3(pin, Voltage_Resolution, ADC_Bit_Resolution, type);
 
 void setup() {
   //Init the serial port communication - to debug the library
   Serial.begin(9600); //Init serial port
 
   //Set math model to calculate the PPM concentration and the value of constants
-  MQ3.setRegressionMethod(1); //_PPM =  a*ratio^b
-  MQ3.setA(4.7380); MQ3.setB(-2.688); // Configure the equation to to calculate benzene concentration
+  MQ3.setCurve(4.7380, -2.688); // Configure the equation to to calculate benzene concentration
   /*
     Exponential regression:
   Gas     | a          | b
@@ -68,8 +66,8 @@ void setup() {
 
   
   /* 
-    //If the RL value is different from 10K please assign your RL value with the following method:
-    MQ3.setRL(10);
+    //If the RL value is different from 10K please set it with setLoadResistance:
+    MQ3.setLoadResistance(10);
   */
 
   /*****************************  MQ CAlibration ********************************************/ 
@@ -84,7 +82,7 @@ void setup() {
   for(int i = 1; i<=10; i ++)
   {
     int yourA2DValue = random(0, 1024); // 10-bit emulation
-    MQ3.setADC(yourA2DValue);// Update data, the arduino will read the voltage from the analog pin
+    MQ3.updateFromRaw(yourA2DValue); // Use the value your A2D measured
     calcR0 += MQ3.calibrate(RatioMQ3CleanAir);
     Serial.print(".");
   }
@@ -95,17 +93,15 @@ void setup() {
   if(calcR0 == 0){Serial.println("Warning: Connection issue found, R0 is zero (Analog pin shorts to ground) please check your wiring and supply"); while(1);}
   /*****************************  MQ CAlibration ********************************************/ 
 
-  MQ3.serialDebug(true);
 }
 
 void loop() {
   int yourA2DValue = random(0, 1024); // 10-bit emulation
-  MQ3.setADC(yourA2DValue); // Update data, the arduino will read the voltage from the analog pin
-  float correctionFactor = 0; // Optional environmental correction
+  MQ3.updateFromRaw(yourA2DValue); // Use the value your A2D measured
   // The MQ-3 coefficients return mg/L, the unit of its datasheet's figure, not ppm
-  // (0.4 mg/L of alcohol is about 200 ppm, per the datasheet). serialDebug() still
-  // heads that column PPM.
-  MQ3.readSensor(false, correctionFactor); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
-  MQ3.serialDebug(); // Will print the table on the serial port
+  // (0.4 mg/L of alcohol is about 200 ppm, per the datasheet). printDebug() still
+  // labels it ppm.
+  MQ3.readPpm(); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
+  MQ3.printDebug(); // Print one line: voltage, Rs, R0, ratio and ppm
   delay(500); //Sampling frequency
 }

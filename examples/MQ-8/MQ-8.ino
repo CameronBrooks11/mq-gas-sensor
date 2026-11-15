@@ -25,7 +25,6 @@
 #include <MQGasSensor.h>
 
 //Definitions
-#define placa "Arduino UNO"
 #define Voltage_Resolution 5
 #define pin A0 //Analog input 0 of your arduino
 #define type "MQ-8" //MQ8
@@ -34,15 +33,14 @@
 //#define calibration_button 13 //Pin to calibrate your sensor
 
 //Declare Sensor
-MQGasSensor MQ8(placa, Voltage_Resolution, ADC_Bit_Resolution, pin, type);
+MQGasSensor MQ8(pin, Voltage_Resolution, ADC_Bit_Resolution, type);
 
 void setup() {
   //Init the serial port communication - to debug the library
   Serial.begin(9600); //Init serial port
 
   //Set math model to calculate the PPM concentration and the value of constants
-  MQ8.setRegressionMethod(1); //_PPM =  a*ratio^b
-  MQ8.setA(973.62); MQ8.setB(-0.6902); // Configure the equation to to calculate H2 concentration
+  MQ8.setCurve(973.62, -0.6902); // Configure the equation to to calculate H2 concentration
 
   /*
     Exponential regression:
@@ -58,10 +56,10 @@ void setup() {
   /*****************************  MQ Init ********************************************/ 
   //Remarks: Configure the pin of arduino as input.
   /************************************************************************************/ 
-  MQ8.init();   
+  MQ8.begin();   
   /* 
-    //If the RL value is different from 10K please assign your RL value with the following method:
-    MQ8.setRL(10);
+    //If the RL value is different from 10K please set it with setLoadResistance:
+    MQ8.setLoadResistance(10);
   */
   /*****************************  MQ CAlibration ********************************************/ 
   // Explanation: 
@@ -84,13 +82,11 @@ void setup() {
   if(isinf(calcR0)) {Serial.println("Warning: Connection issue, R0 is infinite (Open circuit detected) please check your wiring and supply"); while(1);}
   if(calcR0 == 0){Serial.println("Warning: Connection issue found, R0 is zero (Analog pin shorts to ground) please check your wiring and supply"); while(1);}
   /*****************************  MQ CAlibration ********************************************/ 
-  MQ8.serialDebug(true);
 }
 
 void loop() {
   MQ8.update(); // Update data, the arduino will read the voltage from the analog pin
-  float correctionFactor = 0; // Optional environmental correction
-  MQ8.readSensor(false, correctionFactor); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
-  MQ8.serialDebug(); // Will print the table on the serial port
+  MQ8.readPpm(); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
+  MQ8.printDebug(); // Print one line: voltage, Rs, R0, ratio and ppm
   delay(500); //Sampling frequency
 }

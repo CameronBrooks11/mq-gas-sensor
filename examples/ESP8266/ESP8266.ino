@@ -23,7 +23,6 @@
 //Include the library
 #include <MQGasSensor.h>
 /************************Hardware Related Macros************************************/
-#define         Board                   ("ESP8266")
 #define         Pin                     (A0)  //Analog input 3 of your arduino
 /***********************Software Related Macros************************************/
 #define         Type                    ("MQ-3") //MQ3
@@ -31,7 +30,7 @@
 #define         ADC_Bit_Resolution      (10) // For ESP8266
 #define         RatioMQ3CleanAir        (59.9) // Rs/R0 in clean air, from the datasheet's AIR line (docs/coefficients.md)
 /*****************************Globals***********************************************/
-MQGasSensor MQ3(Board, Voltage_Resolution, ADC_Bit_Resolution, Pin, Type);
+MQGasSensor MQ3(Pin, Voltage_Resolution, ADC_Bit_Resolution, Type);
 /*****************************Globals***********************************************/
 
 void setup() {
@@ -39,8 +38,7 @@ void setup() {
   Serial.begin(9600); //Init serial port
 
   //Set math model to calculate the PPM concentration and the value of constants
-  MQ3.setRegressionMethod(1); //_PPM =  a*ratio^b
-  MQ3.setA(4.7380); MQ3.setB(-2.688); // Configure the equation to to calculate benzene concentration
+  MQ3.setCurve(4.7380, -2.688); // Configure the equation to to calculate benzene concentration
   /*
     Exponential regression:
   Gas     | a          | b
@@ -57,11 +55,11 @@ void setup() {
   /*****************************  MQ Init ********************************************/ 
   //Remarks: Configure the pin of arduino as input.
   /************************************************************************************/ 
-  MQ3.init(); 
+  MQ3.begin(); 
  
   /* 
-    //If the RL value is different from 10K please assign your RL value with the following method:
-    MQ3.setRL(10);
+    //If the RL value is different from 10K please set it with setLoadResistance:
+    MQ3.setLoadResistance(10);
   */
   /*****************************  MQ CAlibration ********************************************/ 
   // Explanation: 
@@ -84,16 +82,14 @@ void setup() {
   if(isinf(calcR0)) {Serial.println("Warning: Connection issue, R0 is infinite (Open circuit detected) please check your wiring and supply"); while(1);}
   if(calcR0 == 0){Serial.println("Warning: Connection issue found, R0 is zero (Analog pin shorts to ground) please check your wiring and supply"); while(1);}
   /*****************************  MQ CAlibration ********************************************/ 
-  MQ3.serialDebug(true);
 }
 
 void loop() {
   MQ3.update(); // Update data, the arduino will read the voltage from the analog pin
-  float correctionFactor = 0; // Optional environmental correction
   // The MQ-3 coefficients return mg/L, the unit of its datasheet's figure, not ppm
-  // (0.4 mg/L of alcohol is about 200 ppm, per the datasheet). serialDebug() still
-  // heads that column PPM.
-  MQ3.readSensor(false, correctionFactor); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
-  MQ3.serialDebug(); // Will print the table on the serial port
+  // (0.4 mg/L of alcohol is about 200 ppm, per the datasheet). printDebug() still
+  // labels it ppm.
+  MQ3.readPpm(); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
+  MQ3.printDebug(); // Print one line: voltage, Rs, R0, ratio and ppm
   delay(500); //Sampling frequency
 }

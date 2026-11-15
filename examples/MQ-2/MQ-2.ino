@@ -23,7 +23,6 @@
 //Include the library
 #include <MQGasSensor.h>
 /************************Hardware Related Macros************************************/
-#define         Board                   ("Arduino UNO")
 #define         Pin                     (A2)  //Analog input 3 of your arduino
 /***********************Software Related Macros************************************/
 #define         Type                    ("MQ-2") //MQ2
@@ -32,7 +31,7 @@
 #define         RatioMQ2CleanAir        (9.51) // Rs/R0 in clean air, from the datasheet's AIR line (docs/coefficients.md)
 
 /*****************************Globals***********************************************/
-MQGasSensor MQ2(Board, Voltage_Resolution, ADC_Bit_Resolution, Pin, Type);
+MQGasSensor MQ2(Pin, Voltage_Resolution, ADC_Bit_Resolution, Type);
 /*****************************Globals***********************************************/
 
 void setup() {
@@ -40,8 +39,7 @@ void setup() {
   Serial.begin(9600); //Init serial port
 
   //Set math model to calculate the PPM concentration and the value of constants
-  MQ2.setRegressionMethod(1); //_PPM =  a*ratio^b
-  MQ2.setA(564.77); MQ2.setB(-2.151); // Configure the equation to to calculate LPG concentration
+  MQ2.setCurve(564.77, -2.151); // Configure the equation to to calculate LPG concentration
   /*
     Exponential regression:
     Gas     | a          | b
@@ -57,10 +55,10 @@ void setup() {
   /*****************************  MQ Init ********************************************/ 
   //Remarks: Configure the pin of arduino as input.
   /************************************************************************************/ 
-  MQ2.init(); 
+  MQ2.begin(); 
   /* 
-    //If the RL value is different from 10K please assign your RL value with the following method:
-    MQ2.setRL(10);
+    //If the RL value is different from 10K please set it with setLoadResistance:
+    MQ2.setLoadResistance(10);
   */
   /*****************************  MQ CAlibration ********************************************/ 
   // Explanation: 
@@ -84,13 +82,11 @@ void setup() {
   if(calcR0 == 0){Serial.println("Warning: Connection issue found, R0 is zero (Analog pin shorts to ground) please check your wiring and supply"); while(1);}
   /*****************************  MQ CAlibration ********************************************/ 
 
-  MQ2.serialDebug(true);
 }
 
 void loop() {
   MQ2.update(); // Update data, the arduino will read the voltage from the analog pin
-  float correctionFactor = 0; // Optional environmental correction
-  MQ2.readSensor(false, correctionFactor); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
-  MQ2.serialDebug(); // Will print the table on the serial port
+  MQ2.readPpm(); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
+  MQ2.printDebug(); // Print one line: voltage, Rs, R0, ratio and ppm
   delay(500); //Sampling frequency
 }

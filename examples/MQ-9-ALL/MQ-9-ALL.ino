@@ -24,7 +24,6 @@
 //Include the library
 #include <MQGasSensor.h>
 /************************Hardware Related Macros************************************/
-#define         Board                   ("Arduino UNO")
 #define         Pin                     (A9)  //Analog input 4 of your arduino
 /***********************Software Related Macros************************************/
 #define         Type                    ("MQ-9") //MQ9
@@ -33,23 +32,22 @@
 #define         RatioMQ9CleanAir        (9.75) // Rs/R0 in clean air, from the datasheet's AIR line (docs/coefficients.md)
 /*****************************Globals***********************************************/
 //Declare Sensor
-MQGasSensor MQ9(Board, Voltage_Resolution, ADC_Bit_Resolution, Pin, Type);
+MQGasSensor MQ9(Pin, Voltage_Resolution, ADC_Bit_Resolution, Type);
 
 void setup() {
   //Init the serial port communication - to debug the library
   Serial.begin(9600); //Init serial port
 
   //Set math model to calculate the PPM concentration and the value of constants
-  MQ9.setRegressionMethod(1); //_PPM =  a*ratio^b
  
   
   /*****************************  MQ Init ********************************************/ 
   //Remarks: Configure the pin of arduino as input.
   /************************************************************************************/ 
-  MQ9.init(); 
+  MQ9.begin(); 
   /* 
-    //If the RL value is different from 10K please assign your RL value with the following method:
-    MQ9.setRL(10);
+    //If the RL value is different from 10K please set it with setLoadResistance:
+    MQ9.setLoadResistance(10);
   */
   /*****************************  MQ CAlibration ********************************************/ 
   // Explanation: 
@@ -78,7 +76,6 @@ void setup() {
 
 void loop() {
   MQ9.update(); // Update data, the arduino will read the voltage from the analog pin
-  float correctionFactor = 0; // Optional environmental correction
   /*
   Exponential regression:
   Gas | a          | b
@@ -88,14 +85,14 @@ void loop() {
   From docs/coefficients.md, the fits to the mq-9-hanwei-2008 datasheet.
   */
 
-  MQ9.setA(971.09); MQ9.setB(-2.140); // Configure the equation to to calculate LPG concentration
-  float LPG = MQ9.readSensor(false, correctionFactor); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
+  MQ9.setCurve(971.09, -2.140); // Configure the equation to to calculate LPG concentration
+  float LPG = MQ9.readPpm(); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
 
-  MQ9.setA(4224.5); MQ9.setB(-2.596); // Configure the equation to to calculate CH4 concentration
-  float CH4 = MQ9.readSensor(false, correctionFactor); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
+  MQ9.setCurve(4224.5, -2.596); // Configure the equation to to calculate CH4 concentration
+  float CH4 = MQ9.readPpm(); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
 
-  MQ9.setA(580.02); MQ9.setB(-2.220); // Configure the equation to to calculate CO concentration
-  float CO = MQ9.readSensor(false, correctionFactor); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
+  MQ9.setCurve(580.02, -2.220); // Configure the equation to to calculate CO concentration
+  float CO = MQ9.readPpm(); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
 
   Serial.print("|    "); Serial.print(LPG);
   Serial.print("    |    "); Serial.print(CH4);

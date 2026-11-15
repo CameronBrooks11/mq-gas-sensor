@@ -6,7 +6,7 @@ The library computes a gas concentration from a sensor's resistance as
 ppm = a * (Rs/R0)^b
 ```
 
-`a` and `b` are set per gas with `setA` and `setB`. They are not measured by this project. They come from the sensitivity figure in the sensor's datasheet, which plots Rs/R0 against concentration on log-log axes, one line per gas. This page describes how a line in that figure becomes a pair of numbers, and how anyone can repeat it.
+`a` and `b` are set per gas with `setCurve(a, b)`. They are not measured by this project. They come from the sensitivity figure in the sensor's datasheet, which plots Rs/R0 against concentration on log-log axes, one line per gas. This page describes how a line in that figure becomes a pair of numbers, and how anyone can repeat it.
 
 ## The chain
 
@@ -48,7 +48,7 @@ The example sketches' values are the datasheet fits, the source fit for each gas
 
 ## Clean air
 
-A sketch calibrates R0 in clean air with `calibrate(RatioMQxCleanAir)`, which sets R0 = Rs / ratio, so that ratio scales every reading after it as much as `setA` does. The datasheets draw it as an AIR line: flat, one Rs/R0 at every concentration. It is read from the same figure as the curves, with the same tools, and recorded as an `[[air]]` entry in `analysis/curves.toml`; `just reproduce` reads it again. The examples use each value to three significant figures, and the analysis tests fail if one differs. Until #49 they were copied numbers: most matched their figure within a reading's precision, but MQ-7's 27.5 was 5 % off the 26.1 its figure draws, MQ-2's 9.83 was 3 % off, and the MQ-131 value was inverted (#46).
+A sketch calibrates R0 in clean air with `calibrate(RatioMQxCleanAir)`, which sets R0 = Rs / ratio, so that ratio scales every reading after it as much as `a` does. The datasheets draw it as an AIR line: flat, one Rs/R0 at every concentration. It is read from the same figure as the curves, with the same tools, and recorded as an `[[air]]` entry in `analysis/curves.toml`; `just reproduce` reads it again. The examples use each value to three significant figures, and the analysis tests fail if one differs. Until #49 they were copied numbers: most matched their figure within a reading's precision, but MQ-7's 27.5 was 5 % off the 26.1 its figure draws, MQ-2's 9.83 was 3 % off, and the MQ-131 value was inverted (#46).
 
 ## Two editions of the datasheets
 

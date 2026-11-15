@@ -24,7 +24,6 @@
 //Include the library
 #include <MQGasSensor.h>
 /************************Hardware Related Macros************************************/
-#define         Board                   ("Arduino UNO")
 #define         Pin                     (A4)  //Analog input 4 of your arduino
 /***********************Software Related Macros************************************/
 #define         Type                    ("MQ-4") //MQ4
@@ -33,15 +32,14 @@
 #define         RatioMQ4CleanAir        (4.43) // Rs/R0 in clean air, from the datasheet's AIR line (docs/coefficients.md)
 /*****************************Globals***********************************************/
 //Declare Sensor
-MQGasSensor MQ4(Board, Voltage_Resolution, ADC_Bit_Resolution, Pin, Type);
+MQGasSensor MQ4(Pin, Voltage_Resolution, ADC_Bit_Resolution, Type);
 
 void setup() {
   //Init the serial port communication - to debug the library
   Serial.begin(9600); //Init serial port
 
   //Set math model to calculate the PPM concentration and the value of constants
-  MQ4.setRegressionMethod(1); //_PPM =  a*ratio^b
-  MQ4.setA(990.22); MQ4.setB(-2.826); // Configure the equation to to calculate CH4 concentration
+  MQ4.setCurve(990.22, -2.826); // Configure the equation to to calculate CH4 concentration
   /*
     Exponential regression:
   Gas     | a          | b
@@ -58,10 +56,10 @@ void setup() {
   /*****************************  MQ Init ********************************************/ 
   //Remarks: Configure the pin of arduino as input.
   /************************************************************************************/ 
-  MQ4.init(); 
+  MQ4.begin(); 
   /* 
-    //If the RL value is different from 10K please assign your RL value with the following method:
-    MQ4.setRL(10);
+    //If the RL value is different from 10K please set it with setLoadResistance:
+    MQ4.setLoadResistance(10);
   */
   /*****************************  MQ CAlibration ********************************************/ 
   // Explanation: 
@@ -84,13 +82,11 @@ void setup() {
   if(isinf(calcR0)) {Serial.println("Warning: Connection issue, R0 is infinite (Open circuit detected) please check your wiring and supply"); while(1);}
   if(calcR0 == 0){Serial.println("Warning: Connection issue found, R0 is zero (Analog pin shorts to ground) please check your wiring and supply"); while(1);}
   /*****************************  MQ CAlibration ********************************************/ 
-  MQ4.serialDebug(true);
 }
 
 void loop() {
   MQ4.update(); // Update data, the arduino will read the voltage from the analog pin
-  float correctionFactor = 0; // Optional environmental correction
-  MQ4.readSensor(false, correctionFactor); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
-  MQ4.serialDebug(); // Will print the table on the serial port
+  MQ4.readPpm(); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
+  MQ4.printDebug(); // Print one line: voltage, Rs, R0, ratio and ppm
   delay(500); //Sampling frequency
 }

@@ -120,7 +120,7 @@ class Fit:
     ratio = A * ppm**B   regression of log10(ratio) on log10(ppm): how the
                          datasheet draws the curve.
     ppm = a * ratio**b   regression of log10(ppm) on log10(ratio): the form the
-                         library evaluates, passed to setA and setB.
+                         library evaluates, passed to setCurve(a, b).
 
     The two are not exact inverses of each other unless the points lie on a
     perfect line; r_squared says how close to one they are.

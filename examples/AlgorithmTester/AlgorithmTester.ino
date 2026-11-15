@@ -16,7 +16,6 @@
 //Include the library
 #include <MQGasSensor.h>
 /************************Hardware Related Macros************************************/
-#define         Board                   ("Arduino UNO")
 #define         Pin                     (A3)  //Analog input 3 of your arduino
 /***********************Software Related Macros************************************/
 #define         Type                    ("MQ-3") //MQ3
@@ -24,13 +23,15 @@
 #define         ADC_Bit_Resolution      (10) // For arduino UNO/MEGA/NANO
 
 //Declare Sensor
-MQGasSensor mySensor(Board, Voltage_Resolution, ADC_Bit_Resolution, Pin, Type);
+MQGasSensor mySensor(Pin, Voltage_Resolution, ADC_Bit_Resolution, Type);
 
 /*****************************Globals***********************************************/
 double          ratio[4]                = {};
 double          expectedValue[4]        = {};
 double          calculatedValues[4]     = {};
 double          error[4]                = {};
+
+void testSensor(String SensorName, float A, float B, MQModel model = MQModel::PowerLaw);
 /**************************Object_Sensor********************************************/
 
 void setup()
@@ -38,7 +39,7 @@ void setup()
 //Init serial port
   Serial.begin(9600);
   //init the sensor
-  mySensor.init();
+  mySensor.begin();
 
   //Print in serial monitor
   Serial.println("MQ2 to MQ9 - test program");
@@ -107,22 +108,21 @@ void loop()
     testSensor("MQ-309", 1.6313e+06, -4.076);
 
     // Testing linear equation for MQ-4
-    mySensor.setRegressionMethod(0); //_PPM =  pow(10, (log10(ratio)-b)/a)
     ratio[0] = 2.5; ratio[1] = 1.5; ratio[2] = 0.9; ratio[3] = 0.65;
     expectedValue[0] = 200; expectedValue[1] = 1000; expectedValue[2] = 5000; expectedValue[3] = 10000;
-    testSensor("MQ-4", -0.318, 1.133);
+    testSensor("MQ-4", -0.318, 1.133, MQModel::LogLinear); // ppm = 10^((log10(ratio) - b) / a)
 
     while(1);
 }
 
 
-void testSensor(String SensorName, float A, float B)
+void testSensor(String SensorName, float A, float B, MQModel model)
 {
-    mySensor.setA(A); mySensor.setB(B);
-    calculatedValues[0] = mySensor.validateEcuation(ratio[0]);
-    calculatedValues[1] = mySensor.validateEcuation(ratio[1]);
-    calculatedValues[2] = mySensor.validateEcuation(ratio[2]);
-    calculatedValues[3] = mySensor.validateEcuation(ratio[3]);
+    mySensor.setCurve(A, B, model);
+    calculatedValues[0] = mySensor.ppmFromRatio(ratio[0]);
+    calculatedValues[1] = mySensor.ppmFromRatio(ratio[1]);
+    calculatedValues[2] = mySensor.ppmFromRatio(ratio[2]);
+    calculatedValues[3] = mySensor.ppmFromRatio(ratio[3]);
     error[0] = calculatePercentualError(expectedValue[0], calculatedValues[0]);
     error[1] = calculatePercentualError(expectedValue[1], calculatedValues[1]);
     error[2] = calculatePercentualError(expectedValue[2], calculatedValues[2]);

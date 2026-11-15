@@ -35,7 +35,6 @@
 //Include the library
 #include <MQGasSensor.h>
 /************************Hardware Related Macros************************************/
-#define         Board                   ("ESP-32") // Wemos ESP-32 or other board, whatever have ESP32 core.
 
 //https://www.amazon.com/HiLetgo-ESP-WROOM-32-Development-Microcontroller-Integrated/dp/B0718T232Z (Although Amazon shows ESP-WROOM-32 ESP32 ESP-32S, the board is the ESP-WROOM-32D)
 #define         Pin                     (36) //check the esp32-wroom-32d.jpg image on ESP32 folder 
@@ -46,7 +45,7 @@
 #define         ADC_Bit_Resolution      (12) // ESP-32 bit resolution. Source: https://randomnerdtutorials.com/esp32-adc-analog-read-arduino-ide/
 #define         RatioMQ2CleanAir        (9.51) // Rs/R0 in clean air, from the datasheet's AIR line (docs/coefficients.md)
 /*****************************Globals***********************************************/
-MQGasSensor MQ2(Board, Voltage_Resolution, ADC_Bit_Resolution, Pin, Type);
+MQGasSensor MQ2(Pin, Voltage_Resolution, ADC_Bit_Resolution, Type);
 /*****************************Globals***********************************************/
 
 const char* ssid     = "your-ssid";
@@ -60,8 +59,7 @@ void setup()
   delay(10);
 
   //Set math model to calculate the PPM concentration and the value of constants
-  MQ2.setRegressionMethod(1); //_PPM =  a*ratio^b
-  MQ2.setA(980.95); MQ2.setB(-2.112); // Configure the equation to to calculate H2 concentration
+  MQ2.setCurve(980.95, -2.112); // Configure the equation to to calculate H2 concentration
   
 /*
     Exponential regression:
@@ -78,11 +76,11 @@ void setup()
   /*****************************  MQ Init ********************************************/ 
   //Remarks: Configure the pin of arduino as input.
   /************************************************************************************/ 
-  MQ2.init(); 
+  MQ2.begin(); 
  
   /* 
-    //If the RL value is different from 10K please assign your RL value with the following method:
-    MQ2.setRL(10);
+    //If the RL value is different from 10K please set it with setLoadResistance:
+    MQ2.setLoadResistance(10);
   */
   /*****************************  MQ CAlibration ********************************************/ 
   // Explanation: 
@@ -105,7 +103,6 @@ void setup()
   if(isinf(calcR0)) {Serial.println("Warning: Connection issue, R0 is infinite (Open circuit detected) please check your wiring and supply"); while(1);}
   if(calcR0 == 0){Serial.println("Warning: Connection issue found, R0 is zero (Analog pin shorts to ground) please check your wiring and supply"); while(1);}
   /*****************************  MQ CAlibration ********************************************/ 
-  //MQ2.serialDebug(true); uncomment if you want to print the table on the serial port
 
     // We start by connecting to a WiFi network
 
@@ -130,9 +127,8 @@ void setup()
 void loop()
 {
   MQ2.update(); // Update data, the arduino will read the voltage from the analog pin
-  //MQ2.serialDebug(); // Will print the table on the serial port
-  float correctionFactor = 0; // Optional environmental correction
-  Serial.print(MQ2.readSensor(false, correctionFactor)); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
+  //MQ2.printDebug(); // Print one line: voltage, Rs, R0, ratio and ppm
+  Serial.print(MQ2.readPpm()); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
   Serial.println(" PPM");
   delay(500); //Sampling frequency
 }
