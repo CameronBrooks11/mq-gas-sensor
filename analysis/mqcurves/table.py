@@ -1,7 +1,7 @@
 """Generate docs/coefficients.md: every fitted curve, and every value the examples use.
 
 The first table is one row per curve in analysis/curves.toml, fitted from its
-committed points. The second lists each distinct setA/setB pair found in
+committed points. The second lists each distinct setCurve pair found in
 examples/ beside the curve it comes from, or says that none matches.
 """
 import math

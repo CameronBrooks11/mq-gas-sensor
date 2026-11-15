@@ -48,31 +48,32 @@ A robust Arduino library for interfacing with MQ-series gas sensors, enabling ac
 
 ## Getting Started
 
-The values passed to `setA` and `setB` come from the sensor's datasheet. [docs/coefficients.md](docs/coefficients.md) lists them per sensor and gas, and [docs/methods.md](docs/methods.md) explains how they are derived.
+The values passed to `setCurve(a, b)` come from the sensor's datasheet. [docs/coefficients.md](docs/coefficients.md) lists them per sensor and gas, and [docs/methods.md](docs/methods.md) explains how they are derived.
 
 ```c++
-//Include the library
 #include <MQGasSensor.h>
-/************************Hardware Related Macros************************************/
-#define         Board                   ("Arduino UNO")
-#define         Pin                     (A4)  //Analog input 4 of your arduino
-/***********************Software Related Macros************************************/
-#define         Type                    ("MQ-4") //MQ4
-#define         Voltage_Resolution      (5)
-#define         ADC_Bit_Resolution      (10) // For arduino UNO/MEGA/NANO
-#define         RatioMQ4CleanAir        (4.43) // Rs/R0 in clean air, from the datasheet's AIR line
-/*****************************Globals***********************************************/
-//Declare Sensor
-MQGasSensor MQ4(Board, Voltage_Resolution, ADC_Bit_Resolution, Pin, Type);
-// Setup
-MQ4.setRegressionMethod(1); // 1 -> Exponential: _PPM =  a*ratio^b
-MQ4.setA(990.22); MQ4.setB(-2.826); // CH4, from the MQ-4 datasheet fit in docs/coefficients.md
-MQ4.setR0(3.86018237); // Value getted on calibration
-// Loop
-MQ4.init();
-MQ4.update();
-float ppmCH4 = MQ4.readSensor();
+
+#define RatioMQ4CleanAir (4.43) // Rs/R0 in clean air, from the datasheet's AIR line
+
+MQGasSensor MQ4(A4, 5.0, 10, "MQ-4"); // analog pin, ADC reference (V), ADC bits, name
+
+void setup() {
+  Serial.begin(9600);
+  MQ4.begin();
+  MQ4.setCurve(990.22, -2.826); // CH4, from the MQ-4 datasheet fit in docs/coefficients.md
+  MQ4.update();                    // in clean air, after the heater has warmed up
+  MQ4.calibrate(RatioMQ4CleanAir); // stores R0 = Rs / 4.43; or setR0() with a saved value
+}
+
+void loop() {
+  if (MQ4.update()) {             // false when the pin reads 0 V: check the wiring
+    Serial.println(MQ4.readPpm()); // ppm of CH4
+  }
+  delay(500);
+}
 ```
+
+Version 2.0 changed every call above; the [2.0.0 release notes](https://github.com/CameronBrooks11/mq-gas-sensor/releases/tag/v2.0.0) map each 1.2 call to its replacement.
 
 ## Library Usage
 
@@ -105,23 +106,13 @@ This comprehensive support allows for the development of applications such as ai
 
 ### Serial Debugging
 
-If your sensor is an **MQ2** (Same for others sensors):
-
-- To enable on setup wrote
+After `readPpm()`, `printDebug()` prints one line to `Serial`, or to any `Print` you pass it, with the name, the measured voltage, Rs, R0, the ratio, the concentration and the curve:
 
 ```c++
-MQ2.serialDebug(true);
+MQ2.update();
+MQ2.readPpm();
+MQ2.printDebug(); // MQ-2: V=..., Rs=... kOhm, R0=... kOhm, ratio=..., ppm=... (a*ratio^b, a=..., b=...)
 ```
-
-- And on Loop Wrote
-
-```c++
-MQ2.serialDebug();
-```
-
-- Result:
-
-![Serial debug output](docs/img/Serial_Mon_Explanation.jpeg)
 
 ## Hardware Setup
 
@@ -140,9 +131,9 @@ Sensor pins:
 Sensor characteristics:
 
 - Find your RL Value in KOhms
-  - From datasheet of your sensor
-- If the sensor uses a different supply voltage than the ADC reference, call `yourSensor.setVCC(<voltage>);`
-  - `setVoltResolution()` sets the ADC reference only; the RS calculation uses VCC
+  - From datasheet of your sensor, or your module's schematic; set it with `setLoadResistance(<kOhm>)` if it is not 10
+- If the sensor uses a different supply voltage than the ADC reference, call `yourSensor.setSupplyVoltage(<voltage>);`
+  - `setAdcReference()` sets the ADC reference only; the RS calculation uses the supply voltage
 - Find your RS/R0 (Clean air - English)
   - Note: RS/R0 is equal to Ratio variable on the program
   - From datasheet of your sensor
