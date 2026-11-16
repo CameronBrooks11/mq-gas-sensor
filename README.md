@@ -14,7 +14,7 @@
 
 A robust Arduino library for interfacing with MQ-series gas sensors, enabling accurate gas concentration measurements with ease. Supports calibration, resistance calculations, and real-time gas concentration derivation for various gases.
 
-**Status:** version 1.2.0. Every example is compiled for its board and the unit tests run on a simulated Arduino Mega on each change. This version has not yet been validated against physical sensors. The library began as a fork of [MQSensorsLib](https://github.com/miguel5612/MQSensorsLib) and is now developed independently; see [Acknowledgment](#acknowledgment).
+**Status:** version 2.0.0, which replaced the 1.x API; the [release notes](https://github.com/CameronBrooks11/mq-gas-sensor/releases/tag/v2.0.0) map each old call to its replacement. Every example is compiled for its board and the unit tests run on a simulated Arduino Mega on each change. This version has not yet been validated against physical sensors. The library began as a fork of [MQSensorsLib](https://github.com/miguel5612/MQSensorsLib) and is now developed independently; see [Acknowledgment](#acknowledgment).
 
 ## Features
 
@@ -101,6 +101,8 @@ This library is compatible with various development boards, including **Arduino*
 - **MQ-135**: Detects air quality by sensing NH₃, NOₓ, alcohol, benzene, smoke, and CO₂.
 - **MQ-136**: Sensitive to hydrogen sulfide (H₂S); used for detecting H₂S gas.
 - **MQ-137**: High sensitivity to ammonia (NH₃); suitable for ammonia gas detection.
+- **MQ-303A**: Detects alcohol (ethanol), hydrogen and iso-butane; set `setSupplyOffset(0.45)` for it.
+- **MQ-309A**: Detects carbon monoxide, hydrogen, methane and alcohol; its heater alternates between two voltages, like the MQ-7.
 
 This comprehensive support allows for the development of applications such as air quality monitors, gas leak detectors, and other sensor-based systems.
 
