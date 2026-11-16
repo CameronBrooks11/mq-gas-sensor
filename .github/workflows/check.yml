@@ -42,3 +42,33 @@ jobs:
 
       - name: Test (library on a simulated Mega 2560, scripts, curve tracer)
         run: just test
+
+  # The Arduino Library Manager's checks, with the rules for a new submission.
+  # Switch library-manager to "update" once the library is in its index.
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: arduino-lint
+        uses: arduino/arduino-lint-action@v3
+        with:
+          library-manager: submit
+          compliance: strict
+
+  # The library as PlatformIO resolves it from library.json, on one board of
+  # each architecture library.properties declares.
+  platformio:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install PlatformIO
+        run: pip install platformio==6.1.19
+
+      - name: Build an example through library.json
+        run: pio ci --lib=. --board=uno --board=esp32dev --board=nodemcuv2 examples/MQ-2/MQ-2.ino

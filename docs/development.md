@@ -15,7 +15,7 @@ The repository's tasks are [`just`](https://github.com/casey/just) recipes; `jus
 
 ## Continuous integration
 
-- **Check**, on every pull request and push to main: `just setup`, `just check` and `just test`. A change that breaks an example, a unit test, a link, or the coefficients page fails here.
+- **Check**, on every pull request and push to main: `just setup`, `just check` and `just test`. A change that breaks an example, a unit test, a link, or the coefficients page fails here. Two more jobs check the library as the registries see it: `lint` runs `arduino-lint` with the Arduino Library Manager's rules for a new submission, and `platformio` builds an example through `library.json` for an Uno, an ESP32 and an ESP8266.
 - **Datasheet mirrors**, monthly and on pull requests that touch the datasheets or the curve tracer: tests every mirror of every datasheet, and re-derives the curves from the downloaded files.
 - **Docs site**, on every pull request and push to main: builds this site, and deploys it to GitHub Pages from main.
 
@@ -35,4 +35,4 @@ The build also fails if [API](api.md) and `src/MQGasSensor.h` disagree about the
 
 ## Releasing
 
-The version is in `library.properties`, following [Semantic Versioning](https://semver.org/). A release is a tag `vX.Y.Z` on main with a GitHub release whose notes say what changed for users.
+The version is in `library.properties` and `library.json`, following [Semantic Versioning](https://semver.org/); a test fails when the two disagree. A release is a tag `vX.Y.Z` on main with a GitHub release whose notes say what changed for users.
