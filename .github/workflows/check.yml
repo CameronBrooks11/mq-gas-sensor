@@ -57,7 +57,8 @@ jobs:
           compliance: strict
 
   # The library as PlatformIO resolves it from library.json, on one board of
-  # each architecture library.properties declares.
+  # each architecture library.properties declares, each with the example
+  # written for it (the pairs scripts/examples.sh uses).
   platformio:
     runs-on: ubuntu-24.04
     steps:
@@ -70,5 +71,11 @@ jobs:
       - name: Install PlatformIO
         run: pip install platformio==6.1.19
 
-      - name: Build an example through library.json
-        run: pio ci --lib=. --board=uno --board=esp32dev --board=nodemcuv2 examples/MQ-2/MQ-2.ino
+      - name: AVR (Uno), examples/MQ-2
+        run: pio ci --lib=. --board=uno examples/MQ-2/MQ-2.ino
+
+      - name: ESP32, examples/ESP32
+        run: pio ci --lib=. --board=esp32dev examples/ESP32/ESP32.ino
+
+      - name: ESP8266, examples/ESP8266
+        run: pio ci --lib=. --board=nodemcuv2 examples/ESP8266/ESP8266.ino
