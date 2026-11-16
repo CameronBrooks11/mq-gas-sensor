@@ -16,6 +16,7 @@ import argparse
 import hashlib
 import os
 import sys
+import threading
 import time
 import tomllib
 import urllib.error
@@ -76,27 +77,61 @@ def describe(entry, data):
     return "a PDF of the right size with different content"
 
 
-def try_mirror(entry, url, retries, backoff, timeout):
-    """Return (data, None) when the mirror serves the exact file, else (None, reason)."""
+def get(url, timeout):
+    """One request: (data, None) or (None, reason, retryable)."""
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return resp.read(MAX_BYTES + 1), None, False
+    except urllib.error.HTTPError as err:
+        # A client error will not change on a second try; 429 might.
+        return None, f"HTTP {err.code}", err.code >= 500 or err.code == 429
+    except (urllib.error.URLError, TimeoutError, ConnectionError, OSError) as err:
+        return None, f"unreachable ({getattr(err, 'reason', err)})", True
+
+
+def get_within(url, timeout, seconds):
+    """get(), abandoned after `seconds` of wall-clock time.
+
+    urlopen's timeout bounds each socket operation, not the request: a host
+    that sends a byte at a time, or one with several addresses that each take
+    the full timeout to refuse, can hold a request far longer. So the request
+    runs in a daemon thread, and is left to finish on its own once time is up.
+    """
+    result = []
+    worker = threading.Thread(target=lambda: result.append(get(url, timeout)), daemon=True)
+    worker.start()
+    worker.join(seconds)
+    if not result:
+        return None, None, False
+    return result[0]
+
+
+def try_mirror(entry, url, retries, backoff, timeout, deadline):
+    """Return (data, None) when the mirror serves the exact file, else (None, reason).
+
+    Gives up on the mirror once `deadline` seconds have passed, counting every
+    attempt and the waits between them.
+    """
+    end = time.monotonic() + deadline
     reason = "not attempted"
     for attempt in range(1, retries + 1):
-        retryable = True
-        try:
-            req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-            with urllib.request.urlopen(req, timeout=timeout) as resp:
-                data = resp.read(MAX_BYTES + 1)
+        remaining = end - time.monotonic()
+        if remaining <= 0:
+            break
+        data, error, retryable = get_within(url, min(timeout, remaining), remaining)
+        if data is None and error is None:
+            return None, f"no complete answer within the {deadline:g} s deadline"
+        if data is not None:
             if matches(entry, data):
                 return data, None
-            reason = describe(entry, data)
-        except urllib.error.HTTPError as err:
-            reason = f"HTTP {err.code}"
-            # A client error will not change on a second try; 429 might.
-            retryable = err.code >= 500 or err.code == 429
-        except (urllib.error.URLError, TimeoutError, ConnectionError, OSError) as err:
-            reason = f"unreachable ({getattr(err, 'reason', err)})"
-        if not retryable or attempt == retries:
+            reason, retryable = describe(entry, data), True
+        else:
+            reason = error
+        wait = backoff * attempt
+        if not retryable or attempt == retries or time.monotonic() + wait >= end:
             break
-        time.sleep(backoff * attempt)
+        time.sleep(wait)
     return None, reason
 
 
@@ -107,7 +142,7 @@ def file_matches(entry, path):
         return False
 
 
-def fetch(entries, dest, retries, backoff, timeout, out=sys.stdout):
+def fetch(entries, dest, retries, backoff, timeout, deadline, out=sys.stdout):
     dest.mkdir(parents=True, exist_ok=True)
     failed = 0
     for e in entries:
@@ -116,7 +151,7 @@ def fetch(entries, dest, retries, backoff, timeout, out=sys.stdout):
             print(f"ok       {e['id']}  already present", file=out)
             continue
         for n, m in enumerate(e["mirrors"], 1):
-            data, reason = try_mirror(e, m["url"], retries, backoff, timeout)
+            data, reason = try_mirror(e, m["url"], retries, backoff, timeout, deadline)
             if data is None:
                 print(f"  miss   {e['id']}  mirror {n}/{len(e['mirrors'])} {m['kind']}: {reason}", file=out)
                 continue
@@ -133,12 +168,12 @@ def fetch(entries, dest, retries, backoff, timeout, out=sys.stdout):
     return 1 if failed else 0
 
 
-def verify(entries, retries, backoff, timeout, out=sys.stdout):
+def verify(entries, retries, backoff, timeout, deadline, out=sys.stdout):
     dead = degraded = 0
     for e in entries:
         good = 0
         for n, m in enumerate(e["mirrors"], 1):
-            data, reason = try_mirror(e, m["url"], retries, backoff, timeout)
+            data, reason = try_mirror(e, m["url"], retries, backoff, timeout, deadline)
             if data is None:
                 print(f"BAD      {e['id']}  mirror {n} {m['kind']}: {reason}  {m['url']}", file=out)
             else:
@@ -161,7 +196,9 @@ def main(argv=None):
     p.add_argument("--only", action="append", metavar="ID", help="limit to this datasheet id (repeatable)")
     p.add_argument("--retries", type=int, default=4, help="attempts per mirror (default 4)")
     p.add_argument("--backoff", type=float, default=5.0, help="seconds to wait, times the attempt number (default 5)")
-    p.add_argument("--timeout", type=float, default=60.0, help="seconds per request (default 60)")
+    p.add_argument("--timeout", type=float, default=60.0, help="seconds per network operation (default 60)")
+    p.add_argument("--deadline", type=float, default=180.0,
+                   help="seconds per mirror, every attempt included, before moving on (default 180)")
     args = p.parse_args(argv)
 
     try:
@@ -177,8 +214,8 @@ def main(argv=None):
         entries = [e for e in entries if e["id"] in args.only]
 
     if args.command == "fetch":
-        return fetch(entries, args.dest, args.retries, args.backoff, args.timeout)
-    return verify(entries, args.retries, args.backoff, args.timeout)
+        return fetch(entries, args.dest, args.retries, args.backoff, args.timeout, args.deadline)
+    return verify(entries, args.retries, args.backoff, args.timeout, args.deadline)
 
 
 if __name__ == "__main__":

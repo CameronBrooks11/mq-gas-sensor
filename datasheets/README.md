@@ -10,7 +10,7 @@ The files land in `datasheets/files/`, which git ignores. Python 3.11 or newer i
 
 ## How a download is accepted
 
-Every entry records the file's size and SHA-256 and an ordered list of mirrors. A download is kept only if its bytes match. Anything else is discarded and the next mirror is tried: an error page served with status 200, a truncated copy, or a different edition of the same sheet. A mirror that fails with a server error is retried before moving on.
+Every entry records the file's size and SHA-256 and an ordered list of mirrors. A download is kept only if its bytes match. Anything else is discarded and the next mirror is tried: an error page served with status 200, a truncated copy, or a different edition of the same sheet. A mirror that fails with a server error is retried before moving on. Each mirror gets 180 seconds in all (`--deadline`), retries and the waits between them included, so a host that answers a byte at a time cannot hold up the rest.
 
 ## Mirror order
 
