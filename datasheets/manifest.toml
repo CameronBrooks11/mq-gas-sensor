@@ -56,7 +56,6 @@ mirrors = [
   { kind = "wayback", url = "https://web.archive.org/web/20150402232803id_/http://www.dfrobot.com/image/data/SEN0129/MQ-4.pdf" },
   { kind = "swh", url = "https://archive.softwareheritage.org/api/1/content/sha256:f5831188fead3faf826dcee8173280afaa6039498eb5b1b02b6b6b183781f6f4/raw/" },
   { kind = "live", url = "https://cdn.sparkfun.com/assets/e/f/c/7/d/MQ-4.pdf" },
-  { kind = "live", url = "https://image.dfrobot.com/image/data/SEN0129/MQ-4.pdf" },
   { kind = "github", url = "https://raw.githubusercontent.com/miguel5612/MQSensorsLib_Docs/361dee13dbdcd83ae4f0b8f58080a0b864214f58/Datasheets/MQ4%20-%20Sparkfun.pdf" },
 ]
 
@@ -85,7 +84,6 @@ mirrors = [
   { kind = "wayback", url = "https://web.archive.org/web/20120113122419id_/http://www.sparkfun.com/datasheets/Sensors/Biometric/MQ-6.pdf" },
   { kind = "wayback", url = "https://web.archive.org/web/20150912103200id_/http://www.dfrobot.com/image/data/SEN0131/MQ-6.pdf" },
   { kind = "swh", url = "https://archive.softwareheritage.org/api/1/content/sha256:5e7e022fb5d823b29e8e982faf3cc6bb4261f31eb05cee904ed91708e208775f/raw/" },
-  { kind = "live", url = "https://image.dfrobot.com/image/data/SEN0131/MQ-6.pdf" },
   { kind = "live", url = "https://components101.com/sites/default/files/component_datasheet/MQ-6%20Gas%20Sensor%20Datasheet.pdf" },
   { kind = "github", url = "https://raw.githubusercontent.com/miguel5612/MQSensorsLib_Docs/361dee13dbdcd83ae4f0b8f58080a0b864214f58/Datasheets/MQ6%20-%20Sparkfun.pdf" },
 ]
@@ -118,7 +116,6 @@ mirrors = [
   { kind = "wayback", url = "https://web.archive.org/web/20150403021702id_/http://www.dfrobot.com/image/data/SEN0133/MQ-8.pdf" },
   { kind = "swh", url = "https://archive.softwareheritage.org/api/1/content/sha256:fc9d77f0867ea12fd4e76650d00d26afcac5e0aec699130dce1a1fbc11acb3dc/raw/" },
   { kind = "live", url = "https://cdn.sparkfun.com/datasheets/Sensors/Biometric/MQ-8.pdf" },
-  { kind = "live", url = "https://image.dfrobot.com/image/data/SEN0133/MQ-8.pdf" },
   { kind = "github", url = "https://raw.githubusercontent.com/miguel5612/MQSensorsLib_Docs/361dee13dbdcd83ae4f0b8f58080a0b864214f58/Datasheets/MQ8%20-%20Sparkfun.pdf" },
 ]
 
@@ -150,7 +147,6 @@ mirrors = [
   { kind = "wayback", url = "https://web.archive.org/web/20251030112949id_/https://www.sensorsportal.com/DOWNLOADS/MQ131.pdf" },
   { kind = "swh", url = "https://archive.softwareheritage.org/api/1/content/sha256:c8f3d8ad5f3d6ed26eac950feac21d511ecf10393888fe089ca42994fced4c28/raw/" },
   { kind = "wayback", url = "https://web.archive.org/web/20100106093343id_/http://www.winsensor.com:80/english/products/sms/download.asp?filename=MQ131.pdf" },
-  { kind = "live", url = "https://www.sensorsportal.com/DOWNLOADS/MQ131.pdf" },
   { kind = "github", url = "https://raw.githubusercontent.com/miguel5612/MQSensorsLib_Docs/361dee13dbdcd83ae4f0b8f58080a0b864214f58/Datasheets/MQ131%20-%20sensorsportal.pdf" },
 ]
 
@@ -181,7 +177,6 @@ mirrors = [
   { kind = "wayback", url = "https://web.archive.org/web/20151010184000id_/http://www.sensorica.ru:80/pdf/MQ-136.pdf" },
   { kind = "wayback", url = "https://web.archive.org/web/20201128081950id_/https://www.mysensors.org/dl/57c3ebeb071cb0e34c90057a/design/MQ-136.pdf" },
   { kind = "swh", url = "https://archive.softwareheritage.org/api/1/content/sha256:7730d2611352e397adcb768420d7c1cb3d1a658db010f425fd6cfce36aa2dc1e/raw/" },
-  { kind = "live", url = "https://www.sensorica.ru/pdf/MQ-136.pdf" },
   { kind = "github", url = "https://raw.githubusercontent.com/miguel5612/MQSensorsLib_Docs/361dee13dbdcd83ae4f0b8f58080a0b864214f58/Datasheets/MQ136%20-%20Hanwei.pdf" },
 ]
 
@@ -197,7 +192,6 @@ mirrors = [
   { kind = "wayback", url = "https://web.archive.org/web/20140327132532id_/http://www.sensorica.ru:80/pdf/MQ-137.pdf" },
   { kind = "wayback", url = "https://web.archive.org/web/20190915142405id_/https://components101.com/sites/default/files/component_datasheet/MQ-137%20Sensor%20Datasheet.pdf" },
   { kind = "swh", url = "https://archive.softwareheritage.org/api/1/content/sha256:03e35d479995438ab4ba891128e11317869ff32cc25b0708d26857daff557fc5/raw/" },
-  { kind = "live", url = "https://www.sensorica.ru/pdf/MQ-137.pdf" },
 ]
 
 [[datasheet]]
@@ -226,7 +220,6 @@ mirrors = [
   { kind = "wayback", url = "https://web.archive.org/web/20060708071205id_/http://hwsensor.com:80/English/pro_info/PDF/MQ300/MQ309A%20IN%20ENGLISH.pdf" },
   { kind = "wayback", url = "https://web.archive.org/web/20170329110249id_/http://www.sensorica.ru:80/pdf/MQ-309A.pdf" },
   { kind = "swh", url = "https://archive.softwareheritage.org/api/1/content/sha256:544c67e132764128bbecf823b15d7fcc404651e16669578fd3abbb45b64e8a88/raw/" },
-  { kind = "live", url = "https://www.sensorica.ru/pdf/MQ-309A.pdf" },
   { kind = "github", url = "https://raw.githubusercontent.com/miguel5612/MQSensorsLib_Docs/361dee13dbdcd83ae4f0b8f58080a0b864214f58/Datasheets/MQ309A%20-%20Hanwei.pdf" },
 ]
 
