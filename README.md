@@ -176,11 +176,11 @@ These links are for reading. The exact files the coefficients were derived from,
 | MQ-7    | HANWEI Electronics | [datasheet](https://www.sparkfun.com/datasheets/Sensors/Biometric/MQ-7.pdf)                                     |
 | MQ-8    | HANWEI Electronics | [datasheet](https://web.archive.org/web/20130531234925/http://dlnmh9ip6v2uc.cloudfront.net/datasheets/Sensors/Biometric/MQ-8.pdf) |
 | MQ-9    | HANWEI Electronics | [datasheet](http://www.haoyuelectronics.com/Attachment/MQ-9/MQ9.pdf)                                            |
-| MQ-131  | HANWEI Electronics | [datasheet](http://www.sensorsportal.com/DOWNLOADS/MQ131.pdf)                                                   |
+| MQ-131  | HANWEI Electronics | [datasheet](https://web.archive.org/web/20150506161743id_/http://sensorsportal.com/DOWNLOADS/MQ131.pdf) (archived) |
 | MQ-135  | HANWEI Electronics | [datasheet](https://www.electronicoscaldas.com/datasheet/MQ-135_Hanwei.pdf)                                     |
 | MQ-136  | HANWEI Electronics | [datasheet](https://github.com/miguel5612/MQSensorsLib_Docs/blob/master/Datasheets/MQ136%20-%20Hanwei.pdf)     |
 | MQ-303A | HANWEI Electronics | [datasheet](http://www.kosmodrom.com.ua/pdf/MQ303A.pdf)                                                         |
-| MQ-309A | HANWEI Electronics | [datasheet](http://www.sensorica.ru/pdf/MQ-309A.pdf)                                                            |
+| MQ-309A | HANWEI Electronics | [datasheet](https://web.archive.org/web/20060708071205id_/http://hwsensor.com:80/English/pro_info/PDF/MQ300/MQ309A%20IN%20ENGLISH.pdf) (archived) |
 
 ## Contributing
 
