@@ -397,6 +397,23 @@ test(v2_zero_volts_is_no_reading)
   assertNear(s.voltage(), 512 * 5.0 / 1023, 0.001);
 }
 
+// The two calibration results the examples warn about.
+test(v2_calibrate_at_zero_volts_is_infinite)
+{
+  MQGasSensor s(A15);
+  s.updateFromVoltage(0.0);           // no output: unpowered, open, or AO at GND
+  assertTrue(isinf(s.calibrate(9.51)));
+}
+
+test(v2_calibrate_at_the_supply_is_zero)
+{
+  MQGasSensor s(A15);                 // 5.0 V reference and supply
+  s.updateFromRaw(1023);              // full scale: the output reads the supply
+  assertEqual(s.calibrate(9.51), 0.0f);
+  s.updateFromVoltage(6.0);           // above the supply, as a clipped or misscaled reading
+  assertEqual(s.calibrate(9.51), 0.0f);
+}
+
 void setup()
 {
   Serial.begin(9600);

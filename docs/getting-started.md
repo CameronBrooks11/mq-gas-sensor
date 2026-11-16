@@ -94,7 +94,10 @@ float r0 = MQ2.calibrate(9.51); // MQ-2: Rs/R0 is 9.51 in clean air
 
 Averaging several readings gives a steadier R0, as the examples do. Store the value, for example in EEPROM, and load it with `setR0(r0)` on later starts instead of recalibrating every time. The [`Calibration`](examples.md) sketch prints R0 continuously so you can watch it settle.
 
-If R0 comes out infinite, the pin read 0 V: the sensor is not connected or not powered. If it comes out 0, the pin reads the full supply: check the wiring.
+The examples stop with a warning when calibration gives one of two impossible values:
+
+- **R0 is infinite**: the output read exactly 0 V, so no current flows through the sensor. It is unpowered, its sensing element is open, or AO is shorted to GND. A disconnected AO wire can float instead, giving readings that wander rather than a clean 0, so a wandering R0 points at the wiring too.
+- **R0 is zero**: the output read at or above the supply voltage, which only a sensor with no resistance would give. Either the reading clipped at the top of the ADC's range, as a 5 V output on a 3.3 V input without a divider does; or the supply voltage does not match the scale the output was measured on ([Set up the circuit](#set-up-the-circuit)); or AO is shorted to VCC.
 
 ## Read
 
