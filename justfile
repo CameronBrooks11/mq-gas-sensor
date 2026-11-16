@@ -33,3 +33,11 @@ datasheets:
 # Download the datasheets, then re-derive every traced or extracted curve and compare with the committed points
 reproduce: datasheets
     cd analysis && uv run --locked python -m mqcurves reproduce
+
+# Build the docs site into site/, failing on any warning
+docs:
+    uv run --no-project --with-requirements docs/requirements.txt mkdocs build --strict
+
+# Serve the docs site at http://127.0.0.1:8000 while editing
+serve:
+    uv run --no-project --with-requirements docs/requirements.txt mkdocs serve

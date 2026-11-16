@@ -100,12 +100,12 @@ void loop()
     // Testing MQ303 Isobutano
     ratio[0] = 0.4; ratio[1] = 0.3; ratio[2] = 0.19; ratio[3] = 0.08;
     expectedValue[0] = 100; expectedValue[1] = 300; expectedValue[2] = 1000; expectedValue[3] = 10000;
-    testSensor("MQ-303", 5.3977, -3.001);
+    testSensor("MQ-303A", 5.3977, -3.001);
 
     // Testing MQ309 CO
     ratio[0] = 6; ratio[1] = 5; ratio[2] = 4.3; ratio[3] = 4;
     expectedValue[0] = 1000; expectedValue[1] = 3000; expectedValue[2] = 5000; expectedValue[3] = 7000;
-    testSensor("MQ-309", 1.6313e+06, -4.076);
+    testSensor("MQ-309A", 1.6313e+06, -4.076);
 
     // Testing linear equation for MQ-4
     ratio[0] = 2.5; ratio[1] = 1.5; ratio[2] = 0.9; ratio[3] = 0.65;

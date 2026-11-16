@@ -12,3 +12,5 @@ __pycache__/
 analysis/.venv/
 analysis/out/
 
+# The docs site, built by `just docs`
+site/
