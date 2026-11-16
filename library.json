@@ -1,0 +1,35 @@
+{
+  "name": "MQGasSensor",
+  "version": "2.0.0",
+  "description": "Reads MQ-series gas sensors and converts their output to a gas concentration, with curves fitted from each sensor's datasheet.",
+  "keywords": ["gas", "sensor", "mq", "mq-2", "mq-135", "air-quality", "calibration"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CameronBrooks11/mq-gas-sensor.git"
+  },
+  "homepage": "https://cameronbrooks11.github.io/mq-gas-sensor/",
+  "authors": [
+    { "name": "Cameron K. Brooks", "maintainer": true },
+    { "name": "Miguel Califa" },
+    { "name": "Yersson Carrillo" },
+    { "name": "Ghiordy Contreras" }
+  ],
+  "license": "MIT",
+  "frameworks": "arduino",
+  "platforms": ["atmelavr", "espressif32", "espressif8266"],
+  "headers": "MQGasSensor.h",
+  "export": {
+    "exclude": [
+      ".github",
+      "analysis",
+      "datasheets",
+      "docs",
+      "scripts",
+      "site",
+      "tests",
+      "mkdocs.yml",
+      "justfile",
+      "examples/UnitTesting"
+    ]
+  }
+}
