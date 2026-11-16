@@ -5,6 +5,7 @@ import io
 import sys
 import tempfile
 import threading
+import time
 import unittest
 from pathlib import Path
 
@@ -26,6 +27,20 @@ class Mirror(http.server.BaseHTTPRequestHandler):
 
     def do_GET(self):
         n = Mirror.hits[self.path] = Mirror.hits.get(self.path, 0) + 1
+        if self.path == "/drip":
+            # A host that never stalls long enough for a socket timeout: one
+            # byte every 0.2 s, so each read returns well inside any timeout.
+            self.send_response(200)
+            self.send_header("Content-Length", str(len(GOOD)))
+            self.end_headers()
+            try:
+                for i in range(len(GOOD)):
+                    self.wfile.write(GOOD[i:i + 1])
+                    self.wfile.flush()
+                    time.sleep(0.2)
+            except (BrokenPipeError, ConnectionResetError):
+                pass
+            return
         body, status = {
             "/good": (GOOD, 200),
             "/good2": (GOOD, 200),
@@ -67,9 +82,9 @@ class DatasheetTests(unittest.TestCase):
             "mirrors": [{"kind": "live", "url": self.base + p} for p in paths],
         }
 
-    def run_fetch(self, *paths, retries=3):
+    def run_fetch(self, *paths, retries=3, backoff=0, deadline=30):
         out = io.StringIO()
-        code = datasheets.fetch([self.entry(*paths)], self.dest, retries, 0, 5, out=out)
+        code = datasheets.fetch([self.entry(*paths)], self.dest, retries, backoff, 5, deadline, out=out)
         return code, out.getvalue()
 
     def assert_fetched(self):
@@ -127,6 +142,25 @@ class DatasheetTests(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertEqual(Mirror.hits["/down"], 3)
 
+    def test_slow_mirror_is_abandoned_at_its_deadline(self):
+        start = time.monotonic()
+        code, out = self.run_fetch("/drip", "/good", retries=3, deadline=1.5)
+        elapsed = time.monotonic() - start
+        self.assertEqual(code, 0)
+        self.assert_fetched()
+        self.assertLess(elapsed, 4)  # the drip alone takes over 700 s
+        self.assertEqual(Mirror.hits["/drip"], 1)  # the deadline covers every attempt
+        self.assertIn("deadline", out)
+
+    def test_retries_stop_at_the_deadline(self):
+        # Waits of 1, 2, 3 ... s between attempts: the second wait would end
+        # past the deadline, so the mirror is given up after two attempts.
+        start = time.monotonic()
+        code, _ = self.run_fetch("/down", retries=10, backoff=1, deadline=2.5)
+        self.assertEqual(code, 1)
+        self.assertEqual(Mirror.hits["/down"], 2)
+        self.assertLess(time.monotonic() - start, 2.5)
+
     def test_no_good_mirror_fails_and_leaves_nothing_behind(self):
         code, out = self.run_fetch("/html", "/truncated", "/other-edition", "/missing")
         self.assertEqual(code, 1)
@@ -150,14 +184,14 @@ class DatasheetTests(unittest.TestCase):
 
     def test_verify_checks_every_mirror(self):
         out = io.StringIO()
-        code = datasheets.verify([self.entry("/good", "/html", "/good2")], 1, 0, 5, out=out)
+        code = datasheets.verify([self.entry("/good", "/html", "/good2")], 1, 0, 5, 30, out=out)
         self.assertEqual(code, 0)
         self.assertEqual(set(Mirror.hits), {"/good", "/html", "/good2"})
         self.assertIn("1 with a failing mirror", out.getvalue())
 
     def test_verify_fails_when_no_mirror_works(self):
         out = io.StringIO()
-        code = datasheets.verify([self.entry("/html", "/missing")], 1, 0, 5, out=out)
+        code = datasheets.verify([self.entry("/html", "/missing")], 1, 0, 5, 30, out=out)
         self.assertEqual(code, 1)
         self.assertIn("DEAD", out.getvalue())
 
