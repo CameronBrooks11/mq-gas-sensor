@@ -17,11 +17,8 @@ Please note we have a code of conduct, please follow it in all your interactions
 
 ## Review of pull request
 
-Pull request will be check by three main authors who are linked in
-[README.md](README.md) and they determine to merge to
-main branch. Later than assessment and debbuging procedures was completed, the contribution
-will be released.
+The maintainer named in `library.properties` reviews each pull request and merges it to main once CI passes. Changes are released from main in batches.
 
 ## Versioning
 
-When making a pull request, please remember to update the `library.properties` file to reflect the changes you've made. If your change is minor, consider advancing the version by 0.01. If you're adding a new feature, you may want to advance the version by a whole number.
+The library follows [Semantic Versioning](https://semver.org/). Leave the `version` in `library.properties` alone in a pull request; it is set when a release is cut. Say in the pull request whether the change is a fix, a new feature, or a change to existing behaviour, which decides whether the next release is a patch, minor or major version.
