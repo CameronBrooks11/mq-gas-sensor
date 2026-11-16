@@ -62,7 +62,7 @@ Which ratio `readPpm` computes: `MQRatio::RsOverR0` (the default) or `MQRatio::R
 
 ### `calibrate(cleanAirRatio, r0Offset = 0.0)`
 
-Sets R0 to Rs from the last update divided by `cleanAirRatio`, the datasheet's Rs/R0 in clean air, plus `r0Offset`, and returns it. A negative result becomes 0. If the last update read 0 V, R0 is infinite.
+Sets R0 to Rs from the last update divided by `cleanAirRatio`, the datasheet's Rs/R0 in clean air, plus `r0Offset`, and returns it. A negative result becomes 0. If the last update read 0 V, R0 is infinite; if it read the supply voltage or more, Rs and so R0 are 0.
 
 ### `setR0(kOhm = 10)`
 

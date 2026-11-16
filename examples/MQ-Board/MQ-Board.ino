@@ -148,8 +148,8 @@ void setup() {
   Serial.print(MQ8calcR0/10); Serial.print(" | ");
   Serial.print(MQ9calcR0/10); Serial.println(" |");
 
-  if(isinf(MQ2calcR0) || isinf(MQ3calcR0) || isinf(MQ4calcR0) || isinf(MQ5calcR0)  || isinf(MQ6calcR0) || isinf(MQ7calcR0) || isinf(MQ8calcR0) || isinf(MQ9calcR0)) {Serial.println("Warning: Connection issue found, R0 is infinite (Open circuit detected) please check your wiring and supply"); while(1);}
-  if(MQ2calcR0 == 0 || MQ3calcR0 == 0 || MQ4calcR0 == 0 || MQ5calcR0 == 0 || MQ6calcR0 == 0 || MQ7calcR0 == 0 || MQ8calcR0 == 0 || MQ9calcR0 == 0){Serial.println("Warning: Connection issue found, R0 is zero (Analog pin with short circuit to ground) please check your wiring and supply"); while(1);}
+  if(isinf(MQ2calcR0) || isinf(MQ3calcR0) || isinf(MQ4calcR0) || isinf(MQ5calcR0)  || isinf(MQ6calcR0) || isinf(MQ7calcR0) || isinf(MQ8calcR0) || isinf(MQ9calcR0)) {Serial.println(F("Warning: an R0 is infinite: that sensor's output read 0 V. Check that it is powered and its AO is wired to its analog pin, not shorted to GND.")); while(1);}
+  if(MQ2calcR0 == 0 || MQ3calcR0 == 0 || MQ4calcR0 == 0 || MQ5calcR0 == 0 || MQ6calcR0 == 0 || MQ7calcR0 == 0 || MQ8calcR0 == 0 || MQ9calcR0 == 0){Serial.println(F("Warning: an R0 is zero: that sensor's output read at or above the supply voltage. Check the supply and ADC reference settings, and that its AO is not shorted to VCC.")); while(1);}
   /*****************************  MQ CAlibration ********************************************/ 
  
   //Print in serial monitor
